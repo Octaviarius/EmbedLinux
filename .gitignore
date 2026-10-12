@@ -1,0 +1,5 @@
+# Generated build directories in tutorials and examples.
+build/
+
+# Local CMake preset overrides.
+CMakeUserPresets.json

@@ -1,0 +1,65 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Prepare target",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "-o",
+                "BatchMode=yes",
+                "${config:target.host}",
+                "mkdir -p '${config:target.remoteDir}'"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Sync sources",
+            "type": "process",
+            "command": "rsync",
+            "args": [
+                "-rltz",
+                "--delete",
+                "--exclude=/build/",
+                "--exclude=/.git/",
+                "--exclude=/.vscode/",
+                "-e",
+                "ssh -o BatchMode=yes",
+                "${workspaceFolder}/",
+                "${config:target.host}:${config:target.remoteDir}/"
+            ],
+            "dependsOn": "Prepare target",
+            "problemMatcher": []
+        },
+        {
+            "label": "Build on target",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "-o",
+                "BatchMode=yes",
+                "${config:target.host}",
+                "cd '${config:target.remoteDir}' && cmake --preset native '-DAPP_NAME=${config:target.program}' && cmake --build build/native --parallel '${config:target.jobs}'"
+            ],
+            "dependsOn": "Sync sources",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Run on target",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "-o",
+                "BatchMode=yes",
+                "${config:target.host}",
+                "cd '${config:target.remoteDir}' && './build/native/${config:target.program}'"
+            ],
+            "dependsOn": "Build on target",
+            "problemMatcher": []
+        }
+    ]
+}

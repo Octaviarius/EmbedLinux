@@ -1,8 +1,0 @@
-{
-    "rpi.program": "hello",
-    "rpi.jobs": "1",
-    "rpi.gdb": "/usr/bin/gdb",
-    "C_Cpp.default.compileCommands": [
-        "${workspaceFolder}/build/native/compile_commands.json"
-    ]
-}

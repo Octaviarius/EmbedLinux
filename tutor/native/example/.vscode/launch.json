@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Native: GDB on target via SSH",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${config:target.remoteDir}/build/native/${config:target.program}",
+            "cwd": "${config:target.remoteDir}",
+            "args": [],
+            "MIMode": "gdb",
+            "preLaunchTask": "Build on target",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "pipeTransport": {
+                "pipeProgram": "/usr/bin/ssh",
+                "pipeArgs": [
+                    "-T",
+                    "-o",
+                    "BatchMode=yes",
+                    "${config:target.host}"
+                ],
+                "pipeCwd": "${workspaceFolder}",
+                "debuggerPath": "${config:target.gdb}"
+            },
+            "setupCommands": [
+                {
+                    "text": "set substitute-path \"${config:target.remoteDir}\" \"${workspaceFolder}\""
+                }
+            ]
+        }
+    ]
+}

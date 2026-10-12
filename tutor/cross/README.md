@@ -1,38 +1,17 @@
-# Нативная сборка и кросс-компиляция
+# Кросс-разработка — черновик
 
 ## Содержание
 
-- [Цель и окружение](#цель-и-окружение)
+- [Статус материала](#статус-материала)
 - [Что нужно в принципе](#что-нужно-в-принципе)
 - [Подготовка платы и SSH](#подготовка-платы-и-ssh)
-  - [Подключение по IP-адресу](#подключение-по-ip-адресу)
-  - [Подключение по имени хоста](#подключение-по-имени-хоста)
-  - [Один алиас вместо адресов в каждом файле](#один-алиас-вместо-адресов-в-каждом-файле)
-- [Вариант A: нативная разработка](#вариант-a-нативная-разработка)
-  - [Подготовьте инструменты на плате](#подготовьте-инструменты-на-плате)
-  - [Откройте пример, соберите и отладьте](#откройте-пример-соберите-и-отладьте)
-  - [Готовые файлы для нативной разработки](#готовые-файлы-для-нативной-разработки)
-- [Вариант B: кросс-компиляция](#вариант-b-кросс-компиляция)
-  - [Подготовьте Linux или WSL](#подготовьте-linux-или-wsl)
-  - [Скопируйте sysroot с платы](#скопируйте-sysroot-с-платы)
-  - [Создайте проект и укажите свои пути](#создайте-проект-и-укажите-свои-пути)
-  - [Альтернативные toolchain](#альтернативные-toolchain)
-  - [Готовые файлы для кросс-компиляции](#готовые-файлы-для-кросс-компиляции)
-- [Изменения под свой проект](#изменения-под-свой-проект)
-- [Если что-то не работает](#если-что-то-не-работает)
-- [Проверка результата](#проверка-результата)
+- [Кросс-компиляция](#кросс-компиляция)
 
-Соберём и запустим простое приложение на C двумя способами: непосредственно в целевой системе (**native**) и на рабочем компьютере для целевой системы (**cross**). Затем настроим отладку и готовые проекты VS Code.
+## Статус материала
 
-## Цель и окружение
+Материал выделен из прежнего общего туториала и сохранён для следующего этапа. Его предстоит согласовать с [рабочим окружением](../../environment/README.md) и проверить отдельно. Сейчас основной материал — [нативная разработка](../native/README.md).
 
-Результат туториала — программа `hello`, которая выводит `Hello, Raspberry Pi!` на целевом устройстве. В нативном варианте компиляция выполняется на плате; в cross-варианте — на компьютере, после чего исполняемый файл передаётся на плату.
-
-Для практической части выбрана [Raspberry Pi Zero 2 W (`rpi0-2w`)](../../hardware/rpi0-2w/README.md). Пример кросс-компиляции рассчитан на Raspberry Pi OS с 64-битными приложениями и библиотеками (`arm64`). Рабочий компьютер — Linux или Windows с Ubuntu в WSL. Команды Linux выполняются в Bash; команды установки пакетов рассчитаны на системы семейства Debian.
-
-Нужны установленная ОС, доступ к плате по SSH и доступ к репозиториям пакетов. Подготовка образа ОС не входит в этот туториал: используйте [инструкцию Raspberry Pi](https://www.raspberrypi.com/documentation/computers/getting-started.html). Для примеров требуется CMake 3.21 или новее; проверьте `cmake --version` после установки.
-
-Общий принцип применим к другим платформам, но компилятор, sysroot и параметры целевой архитектуры нужно подобрать отдельно. Для `rpi0-2w` начните с одного процесса нативной сборки, как в готовых настройках ниже.
+Практическая платформа — [rpi0-2w](../../hardware/rpi0-2w/README.md), целевое пользовательское окружение — `arm64`. Сборка выполняется на компьютере в Linux/WSL, программа запускается на плате.
 
 ## Что нужно в принципе
 
@@ -42,17 +21,6 @@
 - VS Code с расширением **C/C++** (`ms-vscode.cpptools`).
 - Для отладки — GDB; при кросс-компиляции дополнительно нужен `gdbserver` на плате.
 - Для кросс-компиляции — компилятор под архитектуру целевых приложений и **sysroot**: каталог заголовков и библиотек целевой системы.
-
-| | Нативная разработка | Кросс-компиляция |
-|---|---|---|
-| Исходники и сборка | На Raspberry Pi | На компьютере в Linux/WSL |
-| Среда работы | SSH-терминал; Remote SSH при достаточных ресурсах платы | VS Code в Linux или WSL |
-| Компилятор | GCC на плате | AArch64 GCC на компьютере |
-| Отдельный sysroot | Не нужен | Нужен из ОС платы |
-| Отладка | GDB на плате | GDB на компьютере → SSH → gdbserver на плате |
-| Когда выбирать | Простой старт, небольшие проекты | Большие проекты, частые сборки |
-
-Начните с нативного варианта, если скорость сборки устраивает. Для каждого варианта ниже приведён самостоятельный готовый проект со своими настройками VS Code.
 
 ## Подготовка платы и SSH
 
@@ -132,190 +100,7 @@ ssh pi-dev
 
 Если ключ уже существует, используйте его, не перезаписывайте. Для Remote SSH из Windows публичный ключ можно добавить при установке ОС через Imager; приватный ключ должен лежать по пути из Windows SSH-конфигурации. Перед автоматической загрузкой и отладкой проверьте, что `ssh pi-dev` работает без запроса пароля учётной записи. Ключ с парольной фразой загрузите в SSH-агент.
 
-## Вариант A: нативная разработка
-
-### Подготовьте инструменты на плате
-
-```bash
-sudo apt update
-sudo apt install build-essential cmake ninja-build gdb git
-```
-
-Для нативной сборки достаточно обычного SSH: подключитесь к плате командой `ssh pi-dev` и выполняйте команды сборки в её терминале.
-
-VS Code Remote SSH запускает сервер редактора и расширения на плате. В [официальных требованиях](https://code.visualstudio.com/docs/remote/ssh#system-requirements) указан минимум 1 ГБ RAM; у `rpi0-2w` — 512 МБ. Поэтому этот вариант не соответствует указанному минимуму и его работа на данной плате здесь не подтверждена. Для нативного сценария используйте обычный SSH; cross-сценарий запускает VS Code на рабочем компьютере.
-
-Если ваша платформа соответствует требованиям Remote SSH, установите на компьютере **Remote - SSH** (`ms-vscode-remote.remote-ssh`), подключитесь через `Remote-SSH: Connect to Host...` → `pi-dev` и установите **C/C++** в окружение `SSH: pi-dev`. После копирования примера откройте его папку на плате. Терминал, сборка и GDB такого окна работают в целевой системе.
-
-### Откройте пример, соберите и отладьте
-
-Скопируйте **содержимое** `tutor/native-cross/examples/native`, включая скрытую папку `.vscode`, в `/home/dev/projects/hello-native` на плате. Если репозиторий EmbedLinux уже находится на плате, выполните из его корня:
-
-```bash
-mkdir -p "$HOME/projects/hello-native"
-cp -R tutor/native-cross/examples/native/. "$HOME/projects/hello-native/"
-```
-
-Если репозиторий есть только на компьютере, скопируйте пример из корня EmbedLinux в Bash Linux/WSL:
-
-```bash
-ssh pi-dev 'mkdir -p /home/dev/projects/hello-native'
-scp -r tutor/native-cross/examples/native/. pi-dev:/home/dev/projects/hello-native/
-```
-
-Затем подключитесь к плате через `ssh pi-dev` и перейдите в каталог проекта: `cd "$HOME/projects/hello-native"`.
-
-Для варианта с Remote SSH в окне VS Code `SSH: pi-dev` откройте `/home/dev/projects/hello-native` через `File → Open Folder`. В этой папке должны сразу находиться `main.c`, `CMakeLists.txt` и `.vscode`, а не дополнительный вложенный каталог `native`.
-
-В готовых настройках VS Code используются установленный `/usr/bin/gdb` и имя программы `hello`; менять настройки для первого запуска не требуется. Если ваш домашний каталог отличается от `/home/dev`, откройте соответствующую папку внутри него.
-
-Если используете Remote SSH и открыли папку примера в VS Code:
-
-- **Ctrl+Shift+B** — настроить CMake и собрать `build/native/hello`.
-- `./build/native/hello` в терминале VS Code — запустить программу.
-- Поставьте точку останова в `main.c`, нажмите **F5**, выберите `Raspberry Pi: native`.
-
-Через обычный SSH, из папки проекта на плате (это основной нативный путь для `rpi0-2w`):
-
-```bash
-cmake --preset native
-cmake --build build/native --parallel 1
-./build/native/hello
-```
-
-Для отладки в том же SSH-терминале:
-
-```bash
-gdb ./build/native/hello
-```
-
-В приглашении GDB выполните `break main`, `run`, затем `next`. Для завершения — `quit`. Такой способ не требует VS Code Server на плате.
-
-### Готовые файлы для нативной разработки
-
-Полный пример находится в [examples/native](examples/native). Ниже приведено содержимое каждого файла. Если создаёте проект вручную, размещайте файлы относительно **`/home/dev/projects/hello-native` на Raspberry Pi**; каталог `.vscode` находится внутри этой папки. Это отдельный законченный пример, объединять его с файлами другого варианта не нужно.
-
-**`main.c`** ([готовый файл](examples/native/main.c)):
-
-```c
-#include <stdio.h>
-
-int main(void)
-{
-    puts("Hello, Raspberry Pi!");
-    return 0;
-}
-```
-
-**`CMakeLists.txt`** ([готовый файл](examples/native/CMakeLists.txt)):
-
-```cmake
-cmake_minimum_required(VERSION 3.21)
-project(rpi_example LANGUAGES C CXX)
-
-set(APP_NAME hello CACHE STRING "Executable name")
-add_executable(${APP_NAME} main.c)
-target_compile_features(${APP_NAME} PRIVATE c_std_11)
-target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra)
-```
-
-**`CMakePresets.json`** ([готовый файл](examples/native/CMakePresets.json)):
-
-```json
-{
-    "version": 3,
-    "configurePresets": [
-        {
-            "name": "native",
-            "generator": "Ninja",
-            "binaryDir": "${sourceDir}/build/native",
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
-            }
-        }
-    ]
-}
-```
-
-**`.vscode/settings.json`** ([готовый файл](examples/native/.vscode/settings.json)):
-
-```json
-{
-    "rpi.program": "hello",
-    "rpi.jobs": "1",
-    "rpi.gdb": "/usr/bin/gdb",
-    "C_Cpp.default.compileCommands": [
-        "${workspaceFolder}/build/native/compile_commands.json"
-    ]
-}
-```
-
-**`.vscode/tasks.json`** ([готовый файл](examples/native/.vscode/tasks.json)):
-
-```json
-{
-    "version": "2.0.0",
-    "tasks": [
-        {
-            "label": "Configure",
-            "type": "process",
-            "command": "cmake",
-            "args": [
-                "--preset",
-                "native",
-                "-DAPP_NAME=${config:rpi.program}"
-            ],
-            "options": {
-                "cwd": "${workspaceFolder}"
-            },
-            "problemMatcher": []
-        },
-        {
-            "label": "Build",
-            "type": "process",
-            "command": "cmake",
-            "args": [
-                "--build",
-                "${workspaceFolder}/build/native",
-                "--parallel",
-                "${config:rpi.jobs}"
-            ],
-            "dependsOn": "Configure",
-            "group": {
-                "kind": "build",
-                "isDefault": true
-            },
-            "problemMatcher": "$gcc"
-        }
-    ]
-}
-```
-
-**`.vscode/launch.json`** ([готовый файл](examples/native/.vscode/launch.json)):
-
-```json
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Raspberry Pi: native",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/native/${config:rpi.program}",
-            "cwd": "${workspaceFolder}",
-            "args": [],
-            "MIMode": "gdb",
-            "miDebuggerPath": "${config:rpi.gdb}",
-            "preLaunchTask": "Build",
-            "stopAtEntry": false,
-            "externalConsole": false
-        }
-    ]
-}
-```
-
-## Вариант B: кросс-компиляция
+## Кросс-компиляция
 
 ### Подготовьте Linux или WSL
 
@@ -372,11 +157,11 @@ Sysroot содержит файлы целевой системы, но GCC мо
 
 ### Создайте проект и укажите свои пути
 
-На компьютере в Linux/WSL скопируйте **содержимое** `tutor/native-cross/examples/cross`, включая `.vscode`, в отдельную папку. Из корня репозитория EmbedLinux:
+На компьютере в Linux/WSL скопируйте **содержимое** `tutor/cross/example`, включая `.vscode`, в отдельную папку. Из корня репозитория EmbedLinux:
 
 ```bash
 mkdir -p "$HOME/projects/hello-cross"
-cp -R tutor/native-cross/examples/cross/. "$HOME/projects/hello-cross/"
+cp -R tutor/cross/example/. "$HOME/projects/hello-cross/"
 cd "$HOME/projects/hello-cross"
 code .
 ```
@@ -420,9 +205,9 @@ ssh pi-dev 'cd /home/dev/pi_test && ./hello'
 
 ### Готовые файлы для кросс-компиляции
 
-Полный пример находится в [examples/cross](examples/cross). Ниже приведено содержимое каждого файла. Если создаёте проект вручную, размещайте файлы относительно **`$HOME/projects/hello-cross` на компьютере в Linux/WSL**; каталог `.vscode` находится внутри этой папки. Это отдельный законченный пример, объединять его с файлами другого варианта не нужно.
+Полный пример находится в [example](example). Ниже приведено содержимое каждого файла. Если создаёте проект вручную, размещайте файлы относительно **`$HOME/projects/hello-cross` на компьютере в Linux/WSL**; каталог `.vscode` находится внутри этой папки. Это отдельный законченный пример, объединять его с файлами другого варианта не нужно.
 
-**`main.c`** ([готовый файл](examples/cross/main.c)):
+**`main.c`** ([готовый файл](example/main.c)):
 
 ```c
 #include <stdio.h>
@@ -434,7 +219,7 @@ int main(void)
 }
 ```
 
-**`CMakeLists.txt`** ([готовый файл](examples/cross/CMakeLists.txt)):
+**`CMakeLists.txt`** ([готовый файл](example/CMakeLists.txt)):
 
 ```cmake
 cmake_minimum_required(VERSION 3.21)
@@ -446,7 +231,7 @@ target_compile_features(${APP_NAME} PRIVATE c_std_11)
 target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra)
 ```
 
-**`CMakePresets.json`** ([готовый файл](examples/cross/CMakePresets.json)):
+**`CMakePresets.json`** ([готовый файл](example/CMakePresets.json)):
 
 ```json
 {
@@ -466,7 +251,7 @@ target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra)
 }
 ```
 
-**`cmake/rpi-toolchain.cmake`** ([готовый файл](examples/cross/cmake/rpi-toolchain.cmake)):
+**`cmake/rpi-toolchain.cmake`** ([готовый файл](example/cmake/rpi-toolchain.cmake)):
 
 ```cmake
 set(CMAKE_SYSTEM_NAME Linux)
@@ -488,7 +273,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 ```
 
-**`.vscode/settings.json`** ([готовый файл](examples/cross/.vscode/settings.json)):
+**`.vscode/settings.json`** ([готовый файл](example/.vscode/settings.json)):
 
 ```json
 {
@@ -507,7 +292,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 }
 ```
 
-**`.vscode/tasks.json`** ([готовый файл](examples/cross/.vscode/tasks.json)):
+**`.vscode/tasks.json`** ([готовый файл](example/.vscode/tasks.json)):
 
 ```json
 {
@@ -618,7 +403,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 }
 ```
 
-**`.vscode/launch.json`** ([готовый файл](examples/cross/.vscode/launch.json)):
+**`.vscode/launch.json`** ([готовый файл](example/.vscode/launch.json)):
 
 ```json
 {
@@ -645,54 +430,5 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
     ]
 }
 ```
-
-## Изменения под свой проект
-
-В обоих примерах `rpi.*` — пользовательские параметры в `.vscode/settings.json`. Задачи читают их через `${config:...}`; VS Code может помечать такие параметры как неизвестные настройки. Вписывайте полные пути без `~` и вложенных `${...}`. В удалённых командах примера используйте имя программы и каталог без пробелов, кавычек и shell-символов. См. [переменные VS Code](https://code.visualstudio.com/docs/reference/variables-reference).
-
-| Что изменить | Где |
-|---|---|
-| Имя программы | `rpi.program` в `.vscode/settings.json`; для сборки из терминала — `-DAPP_NAME=имя` при настройке CMake |
-| Число процессов сборки | `rpi.jobs` в `.vscode/settings.json` |
-| Исходники и библиотеки | `add_executable`, `target_link_libraries` в `CMakeLists.txt` |
-| Каталоги заголовков | `target_include_directories` или импортированные targets в `CMakeLists.txt` |
-| Debug / Release | `CMAKE_BUILD_TYPE` в `CMakePresets.json` соответствующего примера |
-| Аргументы программы | В нативном примере — `args` в `.vscode/launch.json`; в cross-примере — после имени программы в команде gdbserver задачи `Debug server` |
-
-Для C++ замените `main.c` на `main.cpp` в проекте и `CMakeLists.txt`, а `c_std_11` — на, например, `cxx_std_17`.
-
-IntelliSense читает реальные параметры сборки из `build/native/compile_commands.json` или `build/cross/compile_commands.json`. Файл появляется после выполнения `Configure`; пути уже указаны в настройках каждого примера. `c_cpp_properties.json` не требуется. См. [настройки C/C++](https://code.visualstudio.com/docs/cpp/customize-cpp-settings).
-
-В cross-примере CMake читает переменные `RPI_CC`, `RPI_CXX`, `RPI_SYSROOT`. Задача `Configure` задаёт их из `.vscode/settings.json`; при работе из терминала экспортируйте их сами. После смены компилятора или sysroot настройте профиль с чистым кэшем: `cmake --fresh --preset cross` (CMake 3.24+), предварительно экспортировав эти переменные. Для более старого CMake используйте новый каталог сборки. См. [toolchain в CMake](https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html).
-
-Если проект использует pkg-config, задайте `PKG_CONFIG_SYSROOT_DIR` равным пути к sysroot, а `PKG_CONFIG_LIBDIR` — каталогам целевых `.pc`-файлов внутри него. Проверьте, что `PKG_CONFIG_PATH` не добавляет каталоги пакетов компьютера.
-
-Для отладки нужна Debug-сборка с символами. При cross-отладке локальный бинарник и загруженная на плату копия должны совпадать; не применяйте `strip` к локальному файлу. См. [настройки отладки C/C++](https://code.visualstudio.com/docs/cpp/launch-json-reference).
-
-## Если что-то не работает
-
-| Симптом | Что проверить |
-|---|---|
-| `Exec format error` | Архитектуру бинарника (`file`), пакетов платы (`dpkg --print-architecture`) и поддержку этой архитектуры ядром |
-| Файл существует, но запуск сообщает `No such file or directory` | Путь ELF-загрузчика: `readelf -l build/cross/hello`; есть ли он на плате |
-| Не найдены заголовки, `crt*.o` или `-l...` | Пакеты `*-dev` на плате, полноту sysroot и совместимость toolchain |
-| `GLIBC_*` / `GLIBCXX_* not found` | Runtime-библиотеки платы и библиотеки, использованные при линковке |
-| IntelliSense ошибается при успешной сборке | Выполнить `Configure`, выбрать `compile_commands.json` нужного профиля |
-| F5 ждёт или порт занят | Терминал `Debug server`, SSH-доступ, наличие gdbserver, оставшуюся задачу |
-| Точки останова не срабатывают | Debug-сборку, совпадение локального и загруженного бинарника |
-
-## Проверка результата
-
-После сборки выполните программу на плате. Для обоих вариантов ожидается строка:
-
-```text
-Hello, Raspberry Pi!
-```
-
-В cross-варианте `file build/cross/hello` на компьютере должен показывать ELF для ARM AArch64. Проверка архитектуры файла не заменяет запуск: успешный запуск на плате проверяет также доступность загрузчика и runtime-библиотек. Для проверки отладки остановитесь в `main` и выполните код пошагово.
-
-При подготовке проверены JSON-конфигурации, зависимости задач, ссылки и совпадение файлов с примерами в README. Оба проекта собраны в Ubuntu/WSL: native — для x86-64 с локальным запуском, cross — для AArch64 с библиотеками кросс-компилятора дистрибутива. В проверке использован генератор Unix Makefiles вместо отсутствующего Ninja; sysroot конкретной платы не проверен. Запуск и отладка на `rpi0-2w` пока не подтверждены.
-
-Инструкции адаптированы из прежнего мануала по Raspberry Pi; официальные требования Remote SSH и CMake сверены 12 октября 2026 года.
 
 [К списку туториалов](../README.md) · [К описанию проекта](../../README.md)
