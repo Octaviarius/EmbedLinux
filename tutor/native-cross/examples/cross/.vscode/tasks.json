@@ -1,0 +1,106 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Configure",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--preset",
+                "cross",
+                "-DAPP_NAME=${config:rpi.program}"
+            ],
+            "options": {
+                "cwd": "${workspaceFolder}",
+                "env": {
+                    "RPI_CC": "${config:rpi.cc}",
+                    "RPI_CXX": "${config:rpi.cxx}",
+                    "RPI_SYSROOT": "${config:rpi.sysroot}"
+                }
+            },
+            "problemMatcher": []
+        },
+        {
+            "label": "Build",
+            "type": "process",
+            "command": "cmake",
+            "args": [
+                "--build",
+                "${workspaceFolder}/build/cross",
+                "--parallel",
+                "${config:rpi.jobs}"
+            ],
+            "dependsOn": "Configure",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Prepare Pi directory",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "${config:rpi.sshHost}",
+                "mkdir -p '${config:rpi.remoteDir}'"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy",
+            "type": "process",
+            "command": "scp",
+            "args": [
+                "${workspaceFolder}/build/cross/${config:rpi.program}",
+                "${config:rpi.sshHost}:${config:rpi.remoteDir}/${config:rpi.program}"
+            ],
+            "dependsOn": [
+                "Build",
+                "Prepare Pi directory"
+            ],
+            "dependsOrder": "sequence",
+            "problemMatcher": []
+        },
+        {
+            "label": "Run on Pi",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "${config:rpi.sshHost}",
+                "cd '${config:rpi.remoteDir}' && './${config:rpi.program}'"
+            ],
+            "dependsOn": "Deploy",
+            "problemMatcher": []
+        },
+        {
+            "label": "Debug server",
+            "type": "process",
+            "command": "ssh",
+            "args": [
+                "-o",
+                "ExitOnForwardFailure=yes",
+                "-L",
+                "127.0.0.1:${config:rpi.gdbPort}:127.0.0.1:${config:rpi.gdbPort}",
+                "${config:rpi.sshHost}",
+                "cd '${config:rpi.remoteDir}' && LC_ALL=C gdbserver --once :${config:rpi.gdbPort} './${config:rpi.program}'"
+            ],
+            "dependsOn": "Deploy",
+            "isBackground": true,
+            "problemMatcher": {
+                "owner": "rpi-gdbserver",
+                "pattern": {
+                    "regexp": "^(.+):(\\d+): (.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Process .* created; pid = ",
+                    "endsPattern": "^Listening on port \\d+"
+                }
+            }
+        }
+    ]
+}

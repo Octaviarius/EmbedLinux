@@ -1,0 +1,14 @@
+{
+    "rpi.program": "hello",
+    "rpi.jobs": "2",
+    "rpi.cc": "/usr/bin/aarch64-linux-gnu-gcc",
+    "rpi.cxx": "/usr/bin/aarch64-linux-gnu-g++",
+    "rpi.sysroot": "/home/dev/rpi/sysroot",
+    "rpi.sshHost": "pi-dev",
+    "rpi.remoteDir": "/home/dev/pi_test",
+    "rpi.gdbPort": "1234",
+    "rpi.crossGdb": "/usr/bin/gdb-multiarch",
+    "C_Cpp.default.compileCommands": [
+        "${workspaceFolder}/build/cross/compile_commands.json"
+    ]
+}

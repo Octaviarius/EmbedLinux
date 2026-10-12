@@ -1,0 +1,17 @@
+set(CMAKE_SYSTEM_NAME Linux)
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+
+foreach(name RPI_CC RPI_CXX RPI_SYSROOT)
+    if("$ENV{${name}}" STREQUAL "")
+        message(FATAL_ERROR "Set ${name} before configuring the cross preset")
+    endif()
+endforeach()
+
+set(CMAKE_C_COMPILER "$ENV{RPI_CC}")
+set(CMAKE_CXX_COMPILER "$ENV{RPI_CXX}")
+set(CMAKE_SYSROOT "$ENV{RPI_SYSROOT}")
+
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)

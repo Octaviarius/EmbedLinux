@@ -1,0 +1,23 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Raspberry Pi: cross",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/cross/${config:rpi.program}",
+            "cwd": "${workspaceFolder}",
+            "MIMode": "gdb",
+            "miDebuggerPath": "${config:rpi.crossGdb}",
+            "miDebuggerServerAddress": "127.0.0.1:${config:rpi.gdbPort}",
+            "preLaunchTask": "Debug server",
+            "stopAtEntry": false,
+            "externalConsole": false,
+            "setupCommands": [
+                {
+                    "text": "set sysroot ${config:rpi.sysroot}"
+                }
+            ]
+        }
+    ]
+}
