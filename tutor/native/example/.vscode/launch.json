@@ -10,7 +10,7 @@
             "args": [],
             "MIMode": "gdb",
             "preLaunchTask": "Build on target",
-            "stopAtEntry": false,
+            "stopAtEntry": true,
             "externalConsole": false,
             "pipeTransport": {
                 "pipeProgram": "/usr/bin/ssh",
