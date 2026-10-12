@@ -1,0 +1,6 @@
+Host pi-dev
+    HostName 192.168.9.92
+    User dev
+    IdentityFile ~/.ssh/rpi-dev
+    IdentitiesOnly yes
+    HostKeyAlias rpi0-2w
