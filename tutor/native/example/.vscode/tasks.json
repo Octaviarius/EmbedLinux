@@ -7,7 +7,8 @@
             "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
             "TARGET_PROGRAM": "${config:target.program}",
             "TARGET_JOBS": "${config:target.jobs}",
-            "TARGET_BUILD_TYPE": "${config:target.buildType}"
+            "TARGET_BUILD_TYPE": "${config:target.buildType}",
+            "TARGET_BUILD_DIR": "${config:target.buildDir}"
         }
     },
     "tasks": [
@@ -69,6 +70,15 @@
                 "kind": "build",
                 "isDefault": true
             },
+            "problemMatcher": []
+        },
+        {
+            "label": "Open target console",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/console.sh"
+            ],
             "problemMatcher": []
         }
     ]

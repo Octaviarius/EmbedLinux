@@ -4,10 +4,11 @@
     "target.program": "hello",
     "target.jobs": "1",
     "target.gdb": "/usr/bin/gdb",
+    "target.buildType": "Debug",
+    "target.buildDir": "/home/dev/work/hello-native/build",
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.cppStandard": "c++17",
-    "target.buildType": "Debug",
     "cmake.sourceDirectory": "${workspaceFolder}/project",
     "cmake.buildDirectory": "${workspaceFolder}/build"
 }

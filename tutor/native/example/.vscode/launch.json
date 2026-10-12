@@ -5,7 +5,7 @@
             "name": "Native: GDB on target via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${config:target.remoteDir}/build/${config:target.program}",
+            "program": "${config:target.buildDir}/${config:target.program}",
             "cwd": "${config:target.remoteDir}",
             "args": [],
             "MIMode": "gdb",
@@ -26,8 +26,18 @@
             "setupCommands": [
                 {
                     "text": "set substitute-path \"${config:target.remoteDir}/project\" \"${workspaceFolder}/project\""
+                },
+                {
+                    "text": "set inferior-tty ${input:targetTty}"
                 }
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "targetTty",
+            "type": "promptString",
+            "description": "Remote TTY printed by Open target console, e.g. /dev/pts/2"
         }
     ]
 }

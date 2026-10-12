@@ -10,6 +10,10 @@
 - [Сборка и запуск без VS Code](#сборка-и-запуск-без-vs-code)
   - [Назначение скриптов](#назначение-скриптов)
 - [Сборка и отладка в VS Code](#сборка-и-отладка-в-vs-code)
+  - [Как запускается удалённая отладка](#как-запускается-удалённая-отладка)
+  - [Параметры launch.json](#параметры-launchjson)
+  - [Как работает консоль программы](#как-работает-консоль-программы)
+- [Упражнение по отладке](#упражнение-по-отладке)
 - [Готовые файлы проекта](#готовые-файлы-проекта)
 - [Подсказки редактора и изменения проекта](#подсказки-редактора-и-изменения-проекта)
 - [Если что-то не работает](#если-что-то-не-работает)
@@ -46,7 +50,7 @@ flowchart LR
 
 1. **Редактируем и сохраняем код в VS Code.** Меняется локальный файл, например `project/main.c` в `$HOME/projects/hello-native` внутри WSL.
 2. **Передаём исходники на устройство.** `rsync` через SSH обновляет `/home/dev/work/hello-native/project/`. Ключ `--delete` удаляет из этой копии файлы, которых больше нет локально. Передаётся только `project/`, без его `.git`; скрипты и настройки компьютера остаются локально.
-3. **Собираем на устройстве.** CMake читает описание проекта и подготавливает правила сборки для Ninja. Ninja вызывает GCC: компилятор превращает исходники в объектные файлы, затем линковщик объединяет их с необходимыми библиотеками в исполняемый файл `hello` внутри `TARGET_REMOTE_DIR/build`. При повторной сборке обычно пересобираются только части, затронутые изменениями.
+3. **Собираем на устройстве.** CMake читает описание проекта и подготавливает правила сборки для Ninja. Ninja вызывает GCC: компилятор превращает исходники в объектные файлы, затем линковщик объединяет их с необходимыми библиотеками в исполняемый файл `hello` внутри `TARGET_BUILD_DIR`. При повторной сборке обычно пересобираются только части, затронутые изменениями.
 4. **Запускаем или отлаживаем на устройстве.** При запуске программа выполняется в Linux устройства, а её вывод приходит в терминал VS Code через SSH. При отладке на устройстве работает GDB: VS Code передаёт ему команды и показывает точки останова, значения переменных и стек вызовов. Debug-сборка содержит сведения, связывающие машинный код с исходниками; настройка путей позволяет открыть соответствующий файл в WSL.
 5. **Исправляем код и повторяем цикл.** Готовый исполняемый файл остаётся на устройстве; для следующей сборки передаём обновлённые исходники.
 
@@ -95,7 +99,7 @@ hello-native/
 └── target.env             # параметры окружения
 ```
 
-`project/` можно заменить другим CMake-проектом: его исходники и описание сборки не содержат настроек SSH, путей устройства или файлов VS Code. На устройство копируется сам каталог `project` в `TARGET_REMOTE_DIR`: исходники остаются внутри `TARGET_REMOTE_DIR/project/`. `TARGET_REMOTE_DIR` — рабочий каталог на устройстве. В нём лежат `project/`, `build/` и при необходимости другие каталоги и файлы.
+`project/` можно заменить другим CMake-проектом: его исходники и описание сборки не содержат настроек SSH, путей устройства или файлов VS Code. На устройство копируется сам каталог `project` в `TARGET_REMOTE_DIR`: исходники остаются внутри `TARGET_REMOTE_DIR/project/`. `TARGET_REMOTE_DIR` — рабочий каталог на устройстве. В нём лежат `project/`, папки сборки и при необходимости другие каталоги и файлы. Полный путь папки сборки задаёт `TARGET_BUILD_DIR`; в примере это `$TARGET_REMOTE_DIR/build`. Для разных вариантов можно выбрать, например, `$TARGET_REMOTE_DIR/build-debug` и `$TARGET_REMOTE_DIR/build-release`. Папка сборки должна находиться вне `project/`, который синхронизируется с удалением устаревших файлов.
 
 ```text
 /home/dev/work/hello-native/    # TARGET_REMOTE_DIR
@@ -117,6 +121,7 @@ cmake --build build
 |---|---|---|
 | `TARGET_HOST` | `pi-dev` | SSH-алиас устройства из конфигурации компьютера |
 | `TARGET_REMOTE_DIR` | `/home/dev/work/hello-native` | Рабочий каталог на устройстве |
+| `TARGET_BUILD_DIR` | `/home/dev/work/hello-native/build` | Полный путь к папке сборки внутри рабочего каталога устройства |
 | `TARGET_PROGRAM` | `hello` | Имя исполняемого файла |
 | `TARGET_JOBS` | `1` | Число процессов сборки |
 | `TARGET_BUILD_TYPE` | `Debug` | Тип сборки CMake |
@@ -128,6 +133,7 @@ cmake --build build
 ```bash
 export TARGET_HOST=pi-dev
 export TARGET_REMOTE_DIR=/home/dev/work/hello-native
+export TARGET_BUILD_DIR="$TARGET_REMOTE_DIR/build"
 export TARGET_PROGRAM=hello
 export TARGET_JOBS=1
 export TARGET_BUILD_TYPE=Debug
@@ -158,11 +164,12 @@ bash scripts/run.sh
 |---|---|---|---|---|
 | [prepare.sh](example/scripts/prepare.sh) | Через SSH выполняет `mkdir -p`: создаёт удалённый каталог, если его ещё нет | Нет | Вход по SSH и право записи в родительский каталог | Каталог `TARGET_REMOTE_DIR`; существующие файлы сохраняются |
 | [sync.sh](example/scripts/sync.sh) | Через rsync и SSH передаёт локальный `project/`, обновляет изменённые файлы и удаляет исчезнувшие | Нет | Локальный `project/`, каталог назначения и rsync на обеих сторонах | Каталог `TARGET_REMOTE_DIR/project/` с исходниками; соседний `build/` не затрагивается |
-| [configure.sh](example/scripts/configure.sh) | Запускает CMake с исходниками из `TARGET_REMOTE_DIR/project` и каталогом сборки `TARGET_REMOTE_DIR/build`; выбирает Ninja | `TARGET_BUILD_TYPE`, `TARGET_PROGRAM` | Переданный проект, CMake, Ninja и компилятор на устройстве | Правила сборки, `CMakeCache.txt` и `compile_commands.json` в `TARGET_REMOTE_DIR/build`; программа ещё не собрана |
-| [build.sh](example/scripts/build.sh) | Запускает `cmake --build`; Ninja вызывает компилятор и линковщик для необходимых частей проекта | `TARGET_JOBS` | Настроенный CMake каталог `TARGET_REMOTE_DIR/build` и актуальные исходники | Исполняемый файл `TARGET_REMOTE_DIR/build/<имя программы>` либо сообщение, что пересобирать нечего |
-| [run.sh](example/scripts/run.sh) | Через SSH запускает готовую программу с рабочим каталогом `TARGET_REMOTE_DIR` | `TARGET_PROGRAM` | Собранная программа и её библиотеки на устройстве | Выполнение программы; её вывод отображается в терминале компьютера |
+| [configure.sh](example/scripts/configure.sh) | Запускает CMake с исходниками из `TARGET_REMOTE_DIR/project` и каталогом сборки `TARGET_BUILD_DIR`; выбирает Ninja | `TARGET_BUILD_DIR`, `TARGET_BUILD_TYPE`, `TARGET_PROGRAM` | Переданный проект, CMake, Ninja и компилятор на устройстве | Правила сборки, `CMakeCache.txt` и `compile_commands.json` в `TARGET_BUILD_DIR`; программа ещё не собрана |
+| [build.sh](example/scripts/build.sh) | Запускает `cmake --build`; Ninja вызывает компилятор и линковщик для необходимых частей проекта | `TARGET_BUILD_DIR`, `TARGET_JOBS` | Настроенный CMake каталог `TARGET_BUILD_DIR` и актуальные исходники | Исполняемый файл `TARGET_BUILD_DIR/<имя программы>` либо сообщение, что пересобирать нечего |
+| [console.sh](example/scripts/console.sh) | Открывает отдельный SSH-терминал, печатает его путь `tty` и держит соединение открытым | Нет | Вход по SSH | Терминал для stdin/stdout отлаживаемой программы; путь вида `/dev/pts/2` |
+| [run.sh](example/scripts/run.sh) | Через SSH запускает готовую программу с рабочим каталогом `TARGET_REMOTE_DIR` | `TARGET_BUILD_DIR`, `TARGET_PROGRAM` | Собранная программа и её библиотеки на устройстве | Выполнение программы; её вывод отображается в терминале компьютера |
 
-`configure.sh` передаёт имя программы в параметр CMake `APP_NAME`. После изменения `TARGET_PROGRAM` или `TARGET_BUILD_TYPE` нужно повторить настройку и сборку. `TARGET_JOBS` влияет только на число параллельных процессов сборки.
+`configure.sh` передаёт имя программы в параметр CMake `APP_NAME`. После изменения `TARGET_BUILD_DIR`, `TARGET_PROGRAM` или `TARGET_BUILD_TYPE` нужно повторить настройку и сборку. `TARGET_JOBS` влияет только на число параллельных процессов сборки.
 
 В каждом скрипте `set -eu` останавливает выполнение при ошибке команды или обращении к незаданной переменной. Настройки предварительно экспортируются через `source target.env` либо передаются задачей VS Code. `BatchMode=yes` запрещает интерактивные запросы SSH, поэтому для автоматического запуска нужен готовый вход по ключу.
 
@@ -178,47 +185,116 @@ bash scripts/sync.sh && bash scripts/build.sh && bash scripts/run.sh
 
 `&&` запускает следующий шаг только при успехе предыдущего. При изменении параметров CMake повторите `configure.sh` перед сборкой. Уже собранную программу можно запустить одним `bash scripts/run.sh`.
 
-Ожидаемый вывод:
+Программа запрашивает два числа, выводит результат и предлагает следующую пару. Например:
 
 ```text
-Hello, embedded Linux!
+Enter two integers. Press Ctrl+D to exit.
+a (-1000..1000): 13
+b (-1000..1000): -20
+a = 13, b = -20
+sum = -7, product = -260
+The sum is negative.
 ```
+
+Вводите числа в терминале задачи. Для завершения нажмите **Ctrl+D** на пустом приглашении.
 
 ## Сборка и отладка в VS Code
 
 Из корня примера выполните `code .`. В WSL установите расширение **C/C++** (`ms-vscode.cpptools`) именно в окружение WSL.
 
-В `.vscode/settings.json` задайте `target.host` и `target.remoteDir`. Задачи передают настройки `target.*` скриптам через `options.env`; эти значения имеют приоритет над одноимёнными переменными терминала. Для отладки задаётся `target.gdb` — путь к GDB на устройстве.
+В `.vscode/settings.json` задайте `target.host`, `target.remoteDir` и `target.buildDir`. Задачи передают настройки `target.*` скриптам через `options.env`; эти значения имеют приоритет над одноимёнными переменными терминала. Для отладки задаётся `target.gdb` — путь к GDB на устройстве.
 
 - **Ctrl+Shift+B** — последовательность `prepare → sync → configure → build`.
 - `Tasks: Run Task` → `Run on target` — только `run`, без передачи и сборки.
-- **F5** — сборка и запуск GDB на устройстве с остановкой в начале `main`. Затем можно выполнять программу по шагам или продолжить клавишей F5.
+- Перед отладкой: `Tasks: Run Task` → `Open target console`. Терминал покажет путь, например `/dev/pts/2`. Оставьте его открытым.
+- **F5** — укажите показанный путь терминала в запросе VS Code. После сборки программа остановится в начале `main`.
+- Продолжите выполнение или идите по шагам. Ввод и вывод программы находятся в терминале `Open target console`.
 
 Задачи не запоминают успешное выполнение предыдущего запуска: `dependsOn` повторно вызывает зависимости. Поэтому сборка и запуск разделены. После изменений сначала выполните **Ctrl+Shift+B**, затем `Run on target`; без изменений запускайте только `Run on target`. Ninja при повторной сборке обычно не компилирует неизменённые файлы, но SSH-команды и задачи всё равно выполняются.
 
 Для отладки уже собранного приложения без подготовки удалите `preLaunchTask` из `.vscode/launch.json`. Тогда F5 сразу запустит GDB; актуальность программы и исходников нужно обеспечить заранее.
 
-`stopAtEntry: true` позволяет увидеть начало отладки даже без точки останова. Если отключить его, короткое приложение может сразу завершиться. Вывод отладчика смотрите в **Debug Console**, а вывод подготовки и сборки — в терминалах задач.
+`stopAtEntry: true` позволяет увидеть начало отладки даже без точки останова. Если отключить его, короткое приложение может сразу завершиться. Вывод отладчика смотрите в **Debug Console**, вывод сборки — в терминалах задач, ввод и вывод программы — в `Open target console`.
 
 Сохраните исходники перед запуском. В `tasks.json` каждый шаг вызывает один скрипт. Составные задачи объединяют шаги через `dependsOn` и выполняют их по порядку через `dependsOrder: sequence`.
 
-Отладчик связывается с GDB через SSH с помощью `pipeTransport`. `set substitute-path` сопоставляет `TARGET_REMOTE_DIR/project/` с локальным `project/`. Отдельный `gdbserver` не нужен. См. [документацию VS Code](https://code.visualstudio.com/docs/cpp/pipe-transport).
+### Как запускается удалённая отладка
+
+VS Code показывает исходники и состояние программы на компьютере, а **GDB и приложение работают на устройстве**. Компьютер передаёт команды отладчику через SSH; GDB останавливает приложение, читает переменные и выполняет шаги на целевом CPU.
+
+При нажатии F5 происходит следующее:
+
+1. VS Code читает выбранную конфигурацию из `.vscode/launch.json`, подставляет настройки `target.*` и запрашивает путь ранее открытого терминала устройства.
+2. VS Code выполняет `preLaunchTask: "Build on target"` — подготовку приложения перед запуском отладчика.
+
+3. Расширение C/C++ запускает **в WSL** SSH-клиент, который запускает **на устройстве** GDB. Команда по смыслу выглядит так:
+
+   ```bash
+   ssh -T -o BatchMode=yes pi-dev '/usr/bin/gdb --interpreter=mi'
+   ```
+
+4. Через интерфейс GDB/MI адаптер передаёт путь программы, рабочий каталог, команды настройки и точки останова. MI — машинный протокол команд и ответов, а не консоль приложения.
+5. GDB запускает программу и останавливает её в начале `main`. VS Code показывает соответствующий локальный исходник. Дальше команды F10/F11/F5 проходят тем же путём: VS Code → SSH → GDB → приложение.
+
+В этой схеме отдельный `gdbserver` и открытый сетевой порт отладки не требуются. См. [pipeTransport в VS Code](https://code.visualstudio.com/docs/cpp/pipe-transport).
+
+### Параметры launch.json
+
+`${config:target.*}` берёт значение из `.vscode/settings.json`; `${workspaceFolder}` обозначает локальный корень примера в WSL. `${input:targetTty}` — результат запроса пути консоли при запуске.
+
+| Параметр | Для чего нужен в нашем примере |
+|---|---|
+| `name` | Название конфигурации в списке Run and Debug |
+| `type: cppdbg` | Выбирает адаптер отладки C/C++ для GDB/LLDB |
+| `request: launch` | GDB запускает новый процесс приложения |
+| `program` | Путь к исполняемому файлу **на устройстве**: `target.buildDir/target.program` |
+| `cwd` | Рабочий каталог приложения **на устройстве**; относительно него открываются файлы программы |
+| `args: []` | Аргументы запуска; здесь пусто, поскольку числа вводятся через stdin |
+| `MIMode: gdb` | Выбирает GDB и обмен с ним через MI |
+| `preLaunchTask` | Имя задачи, которую нужно успешно выполнить до запуска GDB; удалите параметр для отладки уже собранной версии |
+| `stopAtEntry: true` | Останавливает приложение в начале `main` |
+| `externalConsole: false` | Не запрашивает отдельное окно консоли; удалённый терминал приложения задаём через `set inferior-tty` |
+| `pipeTransport.pipeProgram` | Путь к SSH-клиенту **в WSL**, `/usr/bin/ssh` |
+| `pipeTransport.pipeArgs` | `-T` отключает терминал для канала MI; `BatchMode=yes` запрещает запросы паролей; `target.host` выбирает устройство |
+| `pipeTransport.pipeCwd` | Локальный рабочий каталог SSH-клиента **в WSL** |
+| `pipeTransport.debuggerPath` | Путь к GDB **на устройстве**, обычно `/usr/bin/gdb` |
+| `setupCommands` | Команды настройки GDB перед запуском приложения |
+| `set substitute-path` | Сопоставляет путь исходников на устройстве с локальным `project/`, чтобы VS Code открывал нужные строки |
+| `set inferior-tty` | Назначает удалённый терминал для stdin, stdout и stderr приложения |
+| `inputs` | Описывает запрос `targetTty`; `promptString` предлагает ввести путь вида `/dev/pts/2` |
+
+Полный готовый `launch.json` приведён ниже. Описание параметров: [документация C/C++ VS Code](https://code.visualstudio.com/docs/cpp/launch-json-reference).
+
+### Как работает консоль программы
+
+Для отладки используются **два SSH-соединения**. Одно переносит команды и ответы GDB/MI, второе соединяет терминал VS Code с терминалом приложения на устройстве.
+
+Задача `Open target console` вызывает `console.sh`:
+
+```bash
+ssh -t -o BatchMode=yes "$TARGET_HOST" "tty; exec sleep infinity"
+```
+
+`-t` создаёт псевдотерминал на устройстве. Команда `tty` печатает его путь, например `/dev/pts/2`. `sleep infinity` удерживает соединение открытым и сам ничего не читает из stdin. Поэтому введённые символы может читать отлаживаемая программа, когда GDB направит её ввод в этот терминал.
+
+После ввода пути в запросе F5 команда `set inferior-tty /dev/pts/2` подключает к нему потоки приложения. `printf`, `puts` и ошибки появляются в `Open target console`; введённые там строки читает `fgets`. При остановке на breakpoint приложение не исполняется: продолжите выполнение до чтения ввода. `fflush(stdout)` в примере сразу выводит приглашение без перевода строки.
+
+| Окно VS Code | Что в нём происходит |
+|---|---|
+| Терминалы задач сборки | Вывод скриптов, CMake и компилятора |
+| Debug Console | Сообщения адаптера и команды отладки; сюда не вводятся числа приложения |
+| Терминал `Open target console` | Ввод чисел и stdout/stderr отлаживаемой программы |
+| Терминал `Run on target` | Ввод и вывод при обычном запуске без GDB; `run.sh` тоже использует `ssh -t` |
+
+Оставляйте консоль открытой на время отладки. Между сеансами можно использовать тот же терминал; после закрытия создайте новый и укажите его новый путь. Управляйте остановкой и паузой из VS Code: Ctrl+C в SSH-консоли может завершить удерживающий её процесс.
+
+В проверенной схеме GDB иногда пишет `Failed to set controlling terminal`: стандартные потоки работают, но управляющий терминал процесса не установлен. Управление выполнением остаётся через GDB. Подробнее: [ввод и вывод GDB](https://www.sourceware.org/gdb/current/onlinedocs/gdb.html/Input_002fOutput.html).
 
 ## Готовые файлы проекта
 
 Все файлы создаются **на компьютере**, в корне примера [example](example) или его подкаталогах. Настройки и операции находятся снаружи самостоятельного проекта `project/`. Полное содержимое `target.env` приведено выше.
 
-**`project/main.c`** ([готовый файл](example/project/main.c)):
-
-```c
-#include <stdio.h>
-
-int main(void)
-{
-    puts("Hello, embedded Linux!");
-    return 0;
-}
-```
+Исходный код приложения: [project/main.c](example/project/main.c). Его функции и места для точек останова описаны в упражнении выше.
 
 **`project/CMakeLists.txt`** ([готовый файл](example/project/CMakeLists.txt)):
 
@@ -255,7 +331,7 @@ rsync -rltz --protect-args --delete --exclude=/project/.git/ \
 #!/usr/bin/env bash
 set -eu
 ssh -o BatchMode=yes "$TARGET_HOST" \
-    "cmake -S '$TARGET_REMOTE_DIR/project' -B '$TARGET_REMOTE_DIR/build' -G Ninja -DCMAKE_BUILD_TYPE='$TARGET_BUILD_TYPE' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON '-DAPP_NAME=$TARGET_PROGRAM'"
+    "cmake -S '$TARGET_REMOTE_DIR/project' -B '$TARGET_BUILD_DIR' -G Ninja -DCMAKE_BUILD_TYPE='$TARGET_BUILD_TYPE' -DCMAKE_EXPORT_COMPILE_COMMANDS=ON '-DAPP_NAME=$TARGET_PROGRAM'"
 ```
 
 **`scripts/build.sh`** ([готовый файл](example/scripts/build.sh)):
@@ -264,7 +340,7 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
 #!/usr/bin/env bash
 set -eu
 ssh -o BatchMode=yes "$TARGET_HOST" \
-    "cmake --build '$TARGET_REMOTE_DIR/build' --parallel '$TARGET_JOBS'"
+    "cmake --build '$TARGET_BUILD_DIR' --parallel '$TARGET_JOBS'"
 ```
 
 **`scripts/run.sh`** ([готовый файл](example/scripts/run.sh)):
@@ -272,8 +348,16 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
 ```bash
 #!/usr/bin/env bash
 set -eu
-ssh -o BatchMode=yes "$TARGET_HOST" \
-    "cd '$TARGET_REMOTE_DIR' && exec '$TARGET_REMOTE_DIR/build/$TARGET_PROGRAM'"
+ssh -t -o BatchMode=yes "$TARGET_HOST" \
+    "cd '$TARGET_REMOTE_DIR' && exec '$TARGET_BUILD_DIR/$TARGET_PROGRAM'"
+```
+
+**`scripts/console.sh`** ([готовый файл](example/scripts/console.sh)):
+
+```bash
+#!/usr/bin/env bash
+set -eu
+ssh -t -o BatchMode=yes "$TARGET_HOST" "tty; exec sleep infinity"
 ```
 
 **`.vscode/settings.json`** ([готовый файл](example/.vscode/settings.json)):
@@ -290,7 +374,8 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
     "C_Cpp.default.cppStandard": "c++17",
     "target.buildType": "Debug",
     "cmake.sourceDirectory": "${workspaceFolder}/project",
-    "cmake.buildDirectory": "${workspaceFolder}/build"
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "target.buildDir": "/home/dev/work/hello-native/build"
 }
 ```
 
@@ -306,7 +391,8 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
             "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
             "TARGET_PROGRAM": "${config:target.program}",
             "TARGET_JOBS": "${config:target.jobs}",
-            "TARGET_BUILD_TYPE": "${config:target.buildType}"
+            "TARGET_BUILD_TYPE": "${config:target.buildType}",
+            "TARGET_BUILD_DIR": "${config:target.buildDir}"
         }
     },
     "tasks": [
@@ -369,6 +455,15 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
                 "isDefault": true
             },
             "problemMatcher": []
+        },
+        {
+            "label": "Open target console",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/console.sh"
+            ],
+            "problemMatcher": []
         }
     ]
 }
@@ -384,7 +479,7 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
             "name": "Native: GDB on target via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${config:target.remoteDir}/build/${config:target.program}",
+            "program": "${config:target.buildDir}/${config:target.program}",
             "cwd": "${config:target.remoteDir}",
             "args": [],
             "MIMode": "gdb",
@@ -405,8 +500,18 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
             "setupCommands": [
                 {
                     "text": "set substitute-path \"${config:target.remoteDir}/project\" \"${workspaceFolder}/project\""
+                },
+                {
+                    "text": "set inferior-tty ${input:targetTty}"
                 }
             ]
+        }
+    ],
+    "inputs": [
+        {
+            "id": "targetTty",
+            "type": "promptString",
+            "description": "Remote TTY printed by Open target console, e.g. /dev/pts/2"
         }
     ]
 }
@@ -418,7 +523,7 @@ IntelliSense использует GCC и заголовки компьютера
 
 Новые исходники добавляйте в `add_executable`, библиотеки — через `target_link_libraries` в `project/CMakeLists.txt`. Для C++ замените `project/main.c` на `project/main.cpp`, а `c_std_11` — на `cxx_std_17`.
 
-Аргументы при отладке задаются в `args` файла `.vscode/launch.json`. При обычном запуске добавьте необходимые аргументы после имени программы в `run.sh`.
+Пример читает числа из stdin. При обычном запуске вводите их в терминале `Run on target`, при отладке — в `Open target console`.
 
 Если копируете пример в отдельный Git-репозиторий, добавьте правило `build/` в его корневой `.gitignore`.
 
@@ -442,6 +547,6 @@ IntelliSense использует GCC и заголовки компьютера
 |---|---|---|
 | [Raspberry Pi Zero 2 W (`rpi0-2w`)](../../hardware/rpi0-2w/README.md) | Debian 13, AArch64 | SSH, подготовка каталога, синхронизация, сборка GCC 14.2 / CMake 3.31.6 / Ninja, запуск ARM64-программы, повторная сборка без изменений; удаление устаревшего исходника и сохранение каталога `build` |
 
-Запуск отладки по F5 требует отдельной проверки в VS Code. Наличие GDB само по себе её не подтверждает.
+Дополнительно через отладочный адаптер C/C++ в WSL проверены запуск GDB, остановка в `main`, ввод чисел и вывод результата в отдельной SSH-консоли. Полный запуск через интерфейс VS Code по F5 остаётся отдельной проверкой.
 
 [К туториалам](../README.md) · [К описанию проекта](../../README.md)
