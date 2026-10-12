@@ -8,6 +8,7 @@
 - [Установите инструменты на устройстве](#установите-инструменты-на-устройстве)
 - [Подготовьте проект и параметры](#подготовьте-проект-и-параметры)
 - [Сборка и запуск без VS Code](#сборка-и-запуск-без-vs-code)
+  - [Назначение скриптов](#назначение-скриптов)
 - [Сборка и отладка в VS Code](#сборка-и-отладка-в-vs-code)
 - [Готовые файлы проекта](#готовые-файлы-проекта)
 - [Подсказки редактора и изменения проекта](#подсказки-редактора-и-изменения-проекта)
@@ -44,12 +45,12 @@ flowchart LR
 Один цикл разработки выглядит так:
 
 1. **Редактируем и сохраняем код в VS Code.** Меняется локальный файл, например `project/main.c` в `$HOME/projects/hello-native` внутри WSL.
-2. **Передаём исходники на устройство.** `rsync` через SSH обновляет `/home/dev/projects/hello-native/project`. Ключ `--delete` удаляет из этой копии файлы, которых больше нет локально. Передаётся только `project/`, без его `.git`; скрипты и настройки компьютера остаются локально.
-3. **Собираем на устройстве.** CMake читает описание проекта и подготавливает правила сборки для Ninja. Ninja вызывает GCC: компилятор превращает исходники в объектные файлы, затем линковщик объединяет их с необходимыми библиотеками в исполняемый файл `build/hello`. При повторной сборке обычно пересобираются только части, затронутые изменениями.
+2. **Передаём исходники на устройство.** `rsync` через SSH обновляет `/home/dev/work/hello-native/project/`. Ключ `--delete` удаляет из этой копии файлы, которых больше нет локально. Передаётся только `project/`, без его `.git`; скрипты и настройки компьютера остаются локально.
+3. **Собираем на устройстве.** CMake читает описание проекта и подготавливает правила сборки для Ninja. Ninja вызывает GCC: компилятор превращает исходники в объектные файлы, затем линковщик объединяет их с необходимыми библиотеками в исполняемый файл `hello` внутри `TARGET_REMOTE_DIR/build`. При повторной сборке обычно пересобираются только части, затронутые изменениями.
 4. **Запускаем или отлаживаем на устройстве.** При запуске программа выполняется в Linux устройства, а её вывод приходит в терминал VS Code через SSH. При отладке на устройстве работает GDB: VS Code передаёт ему команды и показывает точки останова, значения переменных и стек вызовов. Debug-сборка содержит сведения, связывающие машинный код с исходниками; настройка путей позволяет открыть соответствующий файл в WSL.
 5. **Исправляем код и повторяем цикл.** Готовый исполняемый файл остаётся на устройстве; для следующей сборки передаём обновлённые исходники.
 
-В готовом примере **Ctrl+Shift+B** выполняет передачу и сборку, задача `Run on target` добавляет запуск, а **F5** после сборки запускает отладку. SSH служит каналом для команд и обмена данными; вычисления компилятора и выполнение приложения происходят на устройстве.
+В готовом примере **Ctrl+Shift+B** выполняет передачу и сборку, задача `Run on target` запускает уже собранную программу, а **F5** после сборки запускает отладку. SSH служит каналом для команд и обмена данными; вычисления компилятора и выполнение приложения происходят на устройстве.
 
 Далее подготовим инструменты на устройстве, откроем пример в WSL и проверим этот цикл по шагам.
 
@@ -94,7 +95,14 @@ hello-native/
 └── target.env             # параметры окружения
 ```
 
-`project/` можно заменить другим CMake-проектом: его исходники и описание сборки не содержат настроек SSH, путей устройства или файлов VS Code. На устройстве рядом с копией `project/` создаётся `build/`. В нём CMake хранит служебные файлы и результат сборки. Исходники остаются отдельно.
+`project/` можно заменить другим CMake-проектом: его исходники и описание сборки не содержат настроек SSH, путей устройства или файлов VS Code. На устройство копируется сам каталог `project` в `TARGET_REMOTE_DIR`: исходники остаются внутри `TARGET_REMOTE_DIR/project/`. `TARGET_REMOTE_DIR` — рабочий каталог на устройстве. В нём лежат `project/`, `build/` и при необходимости другие каталоги и файлы.
+
+```text
+/home/dev/work/hello-native/    # TARGET_REMOTE_DIR
+├── project/                  # исходный проект
+├── build/                    # служебные файлы CMake и программа
+└── ...                       # другие файлы и каталоги
+```
 
 Для самостоятельной сборки проекта в любой системе с нужными инструментами:
 
@@ -108,7 +116,7 @@ cmake --build build
 | Переменная | Значение в примере | Назначение |
 |---|---|---|
 | `TARGET_HOST` | `pi-dev` | SSH-алиас устройства из конфигурации компьютера |
-| `TARGET_REMOTE_DIR` | `/home/dev/projects/hello-native` | Отдельный каталог проекта на устройстве |
+| `TARGET_REMOTE_DIR` | `/home/dev/work/hello-native` | Рабочий каталог на устройстве |
 | `TARGET_PROGRAM` | `hello` | Имя исполняемого файла |
 | `TARGET_JOBS` | `1` | Число процессов сборки |
 | `TARGET_BUILD_TYPE` | `Debug` | Тип сборки CMake |
@@ -119,13 +127,13 @@ cmake --build build
 
 ```bash
 export TARGET_HOST=pi-dev
-export TARGET_REMOTE_DIR=/home/dev/projects/hello-native
+export TARGET_REMOTE_DIR=/home/dev/work/hello-native
 export TARGET_PROGRAM=hello
 export TARGET_JOBS=1
 export TARGET_BUILD_TYPE=Debug
 ```
 
-`rsync --delete` действует только внутри удалённого `project/`. Соседний `build/` не затрагивается. Команды запускайте из корня примера. Для параметров используйте значения без кавычек, переводов строк и shell-символов.
+`rsync --delete` действует внутри передаваемого `TARGET_REMOTE_DIR/project/`. Соседние каталоги сборки и другие файлы рабочего каталога не затрагиваются. Команды запускайте из корня примера. Для параметров используйте значения без кавычек, переводов строк и shell-символов.
 
 ## Сборка и запуск без VS Code
 
@@ -141,6 +149,26 @@ bash scripts/run.sh
 ```
 
 Каждый скрипт выполняет только своё действие: создать каталог, передать проект, настроить CMake, собрать или запустить. Скрипты не вызывают друг друга и не подключают общие файлы.
+
+### Назначение скриптов
+
+Все скрипты запускаются **на компьютере из корня примера**. `TARGET_HOST` задаёт устройство, а `TARGET_REMOTE_DIR` — рабочий каталог на нём. В таблице указаны дополнительные переменные для каждого шага.
+
+| Скрипт | Что делает | Дополнительные параметры | Что должно быть готово | Результат на устройстве |
+|---|---|---|---|---|
+| [prepare.sh](example/scripts/prepare.sh) | Через SSH выполняет `mkdir -p`: создаёт удалённый каталог, если его ещё нет | Нет | Вход по SSH и право записи в родительский каталог | Каталог `TARGET_REMOTE_DIR`; существующие файлы сохраняются |
+| [sync.sh](example/scripts/sync.sh) | Через rsync и SSH передаёт локальный `project/`, обновляет изменённые файлы и удаляет исчезнувшие | Нет | Локальный `project/`, каталог назначения и rsync на обеих сторонах | Каталог `TARGET_REMOTE_DIR/project/` с исходниками; соседний `build/` не затрагивается |
+| [configure.sh](example/scripts/configure.sh) | Запускает CMake с исходниками из `TARGET_REMOTE_DIR/project` и каталогом сборки `TARGET_REMOTE_DIR/build`; выбирает Ninja | `TARGET_BUILD_TYPE`, `TARGET_PROGRAM` | Переданный проект, CMake, Ninja и компилятор на устройстве | Правила сборки, `CMakeCache.txt` и `compile_commands.json` в `TARGET_REMOTE_DIR/build`; программа ещё не собрана |
+| [build.sh](example/scripts/build.sh) | Запускает `cmake --build`; Ninja вызывает компилятор и линковщик для необходимых частей проекта | `TARGET_JOBS` | Настроенный CMake каталог `TARGET_REMOTE_DIR/build` и актуальные исходники | Исполняемый файл `TARGET_REMOTE_DIR/build/<имя программы>` либо сообщение, что пересобирать нечего |
+| [run.sh](example/scripts/run.sh) | Через SSH запускает готовую программу с рабочим каталогом `TARGET_REMOTE_DIR` | `TARGET_PROGRAM` | Собранная программа и её библиотеки на устройстве | Выполнение программы; её вывод отображается в терминале компьютера |
+
+`configure.sh` передаёт имя программы в параметр CMake `APP_NAME`. После изменения `TARGET_PROGRAM` или `TARGET_BUILD_TYPE` нужно повторить настройку и сборку. `TARGET_JOBS` влияет только на число параллельных процессов сборки.
+
+В каждом скрипте `set -eu` останавливает выполнение при ошибке команды или обращении к незаданной переменной. Настройки предварительно экспортируются через `source target.env` либо передаются задачей VS Code. `BatchMode=yes` запрещает интерактивные запросы SSH, поэтому для автоматического запуска нужен готовый вход по ключу.
+
+В `sync.sh` ключ `--delete` удаляет устаревшие файлы только внутри `TARGET_REMOTE_DIR/project/`, `--exclude=/project/.git/` оставляет Git-метаданные вне синхронизации, а `--protect-args` защищает передаваемые rsync пути от обработки удалённой оболочкой.
+
+В `sync.sh` источник указан как `project` **без завершающего `/`**: rsync копирует папку целиком. Запись `project/` скопировала бы только её содержимое.
 
 После изменения исходника достаточно:
 
@@ -163,12 +191,16 @@ Hello, embedded Linux!
 В `.vscode/settings.json` задайте `target.host` и `target.remoteDir`. Задачи передают настройки `target.*` скриптам через `options.env`; эти значения имеют приоритет над одноимёнными переменными терминала. Для отладки задаётся `target.gdb` — путь к GDB на устройстве.
 
 - **Ctrl+Shift+B** — последовательность `prepare → sync → configure → build`.
-- `Tasks: Run Task` → `Run on target` — та же последовательность, затем `run`.
+- `Tasks: Run Task` → `Run on target` — только `run`, без передачи и сборки.
 - Точка останова на `puts` в `project/main.c`, затем **F5** — сборка и запуск GDB на устройстве.
+
+Задачи не запоминают успешное выполнение предыдущего запуска: `dependsOn` повторно вызывает зависимости. Поэтому сборка и запуск разделены. После изменений сначала выполните **Ctrl+Shift+B**, затем `Run on target`; без изменений запускайте только `Run on target`. Ninja при повторной сборке обычно не компилирует неизменённые файлы, но SSH-команды и задачи всё равно выполняются.
+
+Для отладки уже собранного приложения без подготовки удалите `preLaunchTask` из `.vscode/launch.json`. Тогда F5 сразу запустит GDB; актуальность программы и исходников нужно обеспечить заранее.
 
 Сохраните исходники перед запуском. В `tasks.json` каждый шаг вызывает один скрипт. Составные задачи объединяют шаги через `dependsOn` и выполняют их по порядку через `dependsOrder: sequence`.
 
-Отладчик связывается с GDB через SSH с помощью `pipeTransport`. `set substitute-path` сопоставляет удалённый `project/` с локальным `project/`. Отдельный `gdbserver` не нужен. См. [документацию VS Code](https://code.visualstudio.com/docs/cpp/pipe-transport).
+Отладчик связывается с GDB через SSH с помощью `pipeTransport`. `set substitute-path` сопоставляет `TARGET_REMOTE_DIR/project/` с локальным `project/`. Отдельный `gdbserver` не нужен. См. [документацию VS Code](https://code.visualstudio.com/docs/cpp/pipe-transport).
 
 ## Готовые файлы проекта
 
@@ -211,8 +243,8 @@ ssh -o BatchMode=yes "$TARGET_HOST" "mkdir -p '$TARGET_REMOTE_DIR'"
 ```bash
 #!/usr/bin/env bash
 set -eu
-rsync -rltz --protect-args --delete --exclude=/.git/ \
-    -e 'ssh -o BatchMode=yes' project/ "$TARGET_HOST:$TARGET_REMOTE_DIR/project/"
+rsync -rltz --protect-args --delete --exclude=/project/.git/ \
+    -e 'ssh -o BatchMode=yes' project "$TARGET_HOST:$TARGET_REMOTE_DIR/"
 ```
 
 **`scripts/configure.sh`** ([готовый файл](example/scripts/configure.sh)):
@@ -239,7 +271,7 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
 #!/usr/bin/env bash
 set -eu
 ssh -o BatchMode=yes "$TARGET_HOST" \
-    "cd '$TARGET_REMOTE_DIR' && exec './build/$TARGET_PROGRAM'"
+    "cd '$TARGET_REMOTE_DIR' && exec '$TARGET_REMOTE_DIR/build/$TARGET_PROGRAM'"
 ```
 
 **`.vscode/settings.json`** ([готовый файл](example/.vscode/settings.json)):
@@ -247,14 +279,16 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
 ```json
 {
     "target.host": "pi-dev",
-    "target.remoteDir": "/home/dev/projects/hello-native",
+    "target.remoteDir": "/home/dev/work/hello-native",
     "target.program": "hello",
     "target.jobs": "1",
     "target.gdb": "/usr/bin/gdb",
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.cppStandard": "c++17",
-    "target.buildType": "Debug"
+    "target.buildType": "Debug",
+    "cmake.sourceDirectory": "${workspaceFolder}/project",
+    "cmake.buildDirectory": "${workspaceFolder}/build"
 }
 ```
 
@@ -311,7 +345,7 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
             "problemMatcher": []
         },
         {
-            "label": "Run program",
+            "label": "Run on target",
             "type": "process",
             "command": "bash",
             "args": [
@@ -332,15 +366,6 @@ ssh -o BatchMode=yes "$TARGET_HOST" \
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run on target",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "Build on target",
-                "Run program"
-            ],
             "problemMatcher": []
         }
     ]

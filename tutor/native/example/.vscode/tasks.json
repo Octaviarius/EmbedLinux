@@ -48,7 +48,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run program",
+            "label": "Run on target",
             "type": "process",
             "command": "bash",
             "args": [
@@ -69,15 +69,6 @@
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": []
-        },
-        {
-            "label": "Run on target",
-            "dependsOrder": "sequence",
-            "dependsOn": [
-                "Build on target",
-                "Run program"
-            ],
             "problemMatcher": []
         }
     ]

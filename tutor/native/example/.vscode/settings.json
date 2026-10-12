@@ -8,5 +8,6 @@
     "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.cppStandard": "c++17",
     "target.buildType": "Debug",
-    "cmake.sourceDirectory": "/home/agomanchuk/work/EmbedLinux/tutor/native/example/project"
+    "cmake.sourceDirectory": "${workspaceFolder}/project",
+    "cmake.buildDirectory": "${workspaceFolder}/build"
 }
