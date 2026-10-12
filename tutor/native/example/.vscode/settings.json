@@ -1,10 +1,12 @@
 {
     "target.host": "pi-dev",
-    "target.remoteDir": "/home/dev/projects/hello-native",
+    "target.remoteDir": "/home/dev/work/hello-native",
     "target.program": "hello",
     "target.jobs": "1",
     "target.gdb": "/usr/bin/gdb",
     "C_Cpp.default.compilerPath": "/usr/bin/gcc",
     "C_Cpp.default.cStandard": "c11",
-    "C_Cpp.default.cppStandard": "c++17"
+    "C_Cpp.default.cppStandard": "c++17",
+    "target.buildType": "Debug",
+    "cmake.sourceDirectory": "/home/agomanchuk/work/EmbedLinux/tutor/native/example/project"
 }

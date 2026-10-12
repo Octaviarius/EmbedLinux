@@ -1,47 +1,70 @@
 {
     "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+            "TARGET_HOST": "${config:target.host}",
+            "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
+            "TARGET_PROGRAM": "${config:target.program}",
+            "TARGET_JOBS": "${config:target.jobs}",
+            "TARGET_BUILD_TYPE": "${config:target.buildType}"
+        }
+    },
     "tasks": [
         {
             "label": "Prepare target",
             "type": "process",
-            "command": "ssh",
+            "command": "bash",
             "args": [
-                "-o",
-                "BatchMode=yes",
-                "${config:target.host}",
-                "mkdir -p '${config:target.remoteDir}'"
+                "scripts/prepare.sh"
             ],
             "problemMatcher": []
         },
         {
             "label": "Sync sources",
             "type": "process",
-            "command": "rsync",
+            "command": "bash",
             "args": [
-                "-rltz",
-                "--delete",
-                "--exclude=/build/",
-                "--exclude=/.git/",
-                "--exclude=/.vscode/",
-                "-e",
-                "ssh -o BatchMode=yes",
-                "${workspaceFolder}/",
-                "${config:target.host}:${config:target.remoteDir}/"
+                "scripts/sync.sh"
             ],
-            "dependsOn": "Prepare target",
+            "problemMatcher": []
+        },
+        {
+            "label": "Configure target",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/configure.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Compile target",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/build.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Run program",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/run.sh"
+            ],
             "problemMatcher": []
         },
         {
             "label": "Build on target",
-            "type": "process",
-            "command": "ssh",
-            "args": [
-                "-o",
-                "BatchMode=yes",
-                "${config:target.host}",
-                "cd '${config:target.remoteDir}' && cmake --preset native '-DAPP_NAME=${config:target.program}' && cmake --build build/native --parallel '${config:target.jobs}'"
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Prepare target",
+                "Sync sources",
+                "Configure target",
+                "Compile target"
             ],
-            "dependsOn": "Sync sources",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -50,15 +73,11 @@
         },
         {
             "label": "Run on target",
-            "type": "process",
-            "command": "ssh",
-            "args": [
-                "-o",
-                "BatchMode=yes",
-                "${config:target.host}",
-                "cd '${config:target.remoteDir}' && './build/native/${config:target.program}'"
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build on target",
+                "Run program"
             ],
-            "dependsOn": "Build on target",
             "problemMatcher": []
         }
     ]

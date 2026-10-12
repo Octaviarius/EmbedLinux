@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.21)
-project(rpi_example LANGUAGES C CXX)
+project(native_example LANGUAGES C CXX)
 
 set(APP_NAME hello CACHE STRING "Executable name")
 add_executable(${APP_NAME} main.c)

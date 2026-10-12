@@ -5,7 +5,7 @@
             "name": "Native: GDB on target via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${config:target.remoteDir}/build/native/${config:target.program}",
+            "program": "${config:target.remoteDir}/build/${config:target.program}",
             "cwd": "${config:target.remoteDir}",
             "args": [],
             "MIMode": "gdb",
@@ -25,7 +25,7 @@
             },
             "setupCommands": [
                 {
-                    "text": "set substitute-path \"${config:target.remoteDir}\" \"${workspaceFolder}\""
+                    "text": "set substitute-path \"${config:target.remoteDir}/project\" \"${workspaceFolder}/project\""
                 }
             ]
         }

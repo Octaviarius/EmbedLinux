@@ -2,6 +2,6 @@
 
 int main(void)
 {
-    puts("Hello, Raspberry Pi!");
+    puts("Hello, embedded Linux!");
     return 0;
 }
