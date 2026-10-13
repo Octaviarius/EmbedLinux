@@ -20,21 +20,27 @@
 
 **Host** — компьютер разработчика; в варианте с Windows команды выполняются в Ubuntu/WSL. **Target** — целевое Linux-устройство, на котором запускается приложение. При нативной сборке компилятор работает на target, при кросс-сборке — на host; роли систем от этого не меняются.
 
-| Категория | Переменные Bash | Настройки VS Code |
+| Категория | Переменные окружения | Пример обращения в кросс-конфигурации VS Code |
 |---|---|---|
-| Целевое устройство | `TARGET_SSH_HOST`, `TARGET_WORK_DIR`, `TARGET_BUILD_DIR`, `TARGET_GDBSERVER` | `target.sshHost`, `target.workDir`, `target.buildDir`, `target.gdbserver` |
-| Компьютер разработчика | `HOST_WORK_DIR`, `HOST_BUILD_DIR`, `HOST_SYSROOT`, `HOST_TOOLCHAIN_FILE`, `HOST_GDB` | `host.workDir`, `host.buildDir`, `host.sysroot`, `host.toolchainFile`, `host.gdb` |
-| Исполняемый файл приложения на host | `HOST_APP_PATH` | `host.appPath` |
-| Исполняемый файл приложения на target | `TARGET_APP_PATH` | `target.appPath` |
-| Параметры сборки | `BUILD_TYPE`, `BUILD_JOBS` | `build.type`, `build.jobs` |
+| Целевое устройство | `TARGET_SSH_HOST`, `TARGET_WORK_DIR`, `TARGET_GDBSERVER` | `${env:TARGET_SSH_HOST}` |
+| SDK | `SDK_ROOT`, `SDK_SYSROOT`, `SDK_TOOLCHAIN_FILE`, `SDK_GDB` | `${env:SDK_SYSROOT}` |
+| Компьютер разработчика | `HOST_WORK_DIR`, `HOST_BUILD_DIR` | `${env:HOST_BUILD_DIR}` |
+| Исполняемые файлы | `HOST_APP_PATH`, `TARGET_APP_PATH` | `${env:HOST_APP_PATH}` |
+| Параметры сборки | `BUILD_TYPE`, `BUILD_JOBS` | Задачи передают их скриптам через унаследованное окружение |
 
-Префикс указывает, к какой системе относится настройка. Для путей это место хранения: `HOST_SYSROOT` находится на host, хотя содержит заголовки и библиотеки target. `TARGET_SSH_HOST` — адрес или алиас подключения к target; он настраивается на host.
+В нативном варианте также используются отдельные настройки VS Code `target.*` / `build.*`; их соответствие переменным описано в [нативном туториале](../tutor/native/README.md).
+
+Префикс `SDK_*` обозначает профиль среды разработки, `HOST_*` — параметры проекта на компьютере, `TARGET_*` — подключение и запуск на устройстве. `SDK_SYSROOT` находится на host и содержит целевые заголовки и библиотеки. `TARGET_SSH_HOST` — адрес или алиас подключения к target; он настраивается на host.
 
 Архитектура и компиляторы кросс-сборки задаются в toolchain-файле CMake, без дублирования в переменных окружения. В примерах используются только параметры, необходимые соответствующему варианту.
 
 `TARGET_APP_PATH` — полный путь к исполняемому файлу на target. Он используется для запуска, передачи и отладки. Имя приложения фиксируется в CMake самого проекта; этот параметр его не меняет.
 
-В Bash пути формируются последовательно и имеют абсолютные значения: `WORK_DIR → BUILD_DIR → APP_PATH`. В VS Code `target.workDir` — абсолютный путь на устройстве, `host.workDir` — относительно `${workspaceFolder}`; `host.buildDir` — относительно рабочего каталога host, `host.appPath` — относительно каталога сборки. В нативном примере `target.buildDir` — относительно `target.workDir`, `target.appPath` — относительно него. В кросс-примере `target.workDir` — каталог установки, `target.appPath` — относительно него; каталога сборки на target нет. `host.toolchainFile` — относительно `host.workDir`, а `host.sysroot` — абсолютный путь к sysroot на host. Полный путь соединяется непосредственно в `tasks.json` или `launch.json`, без вложенных `${config:...}` в настройках.
+В Bash пути формируются последовательно и имеют абсолютные значения: `WORK_DIR → BUILD_DIR → APP_PATH`.
+
+В нативном туториале VS Code хранит компоненты путей в `settings.json`: `target.workDir` — абсолютный путь, `target.buildDir` — относительно него, `target.appPath` — относительно каталога сборки. Полные пути соединяются непосредственно в задачах и отладке.
+
+В кросс-туториале SDK и проект экспортируют готовые абсолютные пути через `sdk/environment-setup` и `project.env`. Скрипты и VS Code используют одно окружение; в JSON значения читаются через `${env:...}`. На target `TARGET_WORK_DIR` — каталог установки, сборка выполняется только на host. Для WSL окружение редактора загружается через `~/.vscode-server/server-env-setup`; настройка описана в [кросс-туториале](../tutor/cross/README.md#сборка-и-отладка-в-vs-code).
 
 ## Windows и WSL
 

@@ -1,0 +1,9 @@
+# Source from the example root.
+export SDK_ROOT="$PWD/sdk"
+export SDK_SYSROOT="$HOME/sysroots/rpi0"
+export SDK_TOOLCHAIN_FILE="$SDK_ROOT/cmake/linux-toolchain.cmake"
+export SDK_GDB=/usr/bin/gdb-multiarch
+
+export SDK_TARGET_LOADER=/lib/ld-linux-aarch64.so.1
+export SDK_TARGET_MULTIARCH=aarch64-linux-gnu
+export SDK_DEBUG_ARCH=arm64

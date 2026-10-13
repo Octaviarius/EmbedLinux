@@ -5,38 +5,29 @@
             "name": "Cross: local GDB via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
-            "cwd": "${workspaceFolder}",
-            "args": [],
+            "program": "${env:HOST_APP_PATH}",
+            "cwd": "${env:HOST_WORK_DIR}",
             "MIMode": "gdb",
-            "miDebuggerPath": "${config:host.gdb}",
-            "preLaunchTask": "Deploy cross",
-            "externalConsole": false,
+            "miDebuggerPath": "${env:SDK_GDB}",
+            "preLaunchTask": "Debug target",
             "setupCommands": [
                 {
-                    "text": "set sysroot ${config:host.sysroot}"
+                    "text": "set sysroot ${env:SDK_SYSROOT}"
                 }
             ],
             "customLaunchSetupCommands": [
                 {
-                    "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
+                    "text": "file \"${env:HOST_APP_PATH}\""
                 },
                 {
-                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
+                    "text": "target remote | bash \"${env:HOST_WORK_DIR}/scripts/debug-transport.sh\""
                 },
                 {
                     "text": "tbreak main"
                 }
             ],
             "launchCompleteCommand": "exec-continue",
-            "targetArchitecture": "${config:target.debugArch}"
-        }
-    ],
-    "inputs": [
-        {
-            "id": "targetTty",
-            "type": "promptString",
-            "description": "Remote TTY printed by Open target console, e.g. /dev/pts/2"
+            "targetArchitecture": "${env:SDK_DEBUG_ARCH}"
         }
     ]
 }

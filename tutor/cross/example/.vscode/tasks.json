@@ -1,24 +1,28 @@
 {
     "version": "2.0.0",
     "options": {
-        "cwd": "${workspaceFolder}",
-        "env": {
-            "TARGET_SSH_HOST": "${config:target.sshHost}",
-            "TARGET_WORK_DIR": "${config:target.workDir}",
-            "TARGET_APP_PATH": "${config:target.workDir}/${config:target.appPath}",
-            "TARGET_GDBSERVER": "${config:target.gdbserver}",
-            "TARGET_LOADER": "${config:target.loader}",
-            "TARGET_LIB_TRIPLE": "${config:target.libTriple}",
-            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
-            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
-            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
-            "HOST_SYSROOT": "${config:host.sysroot}",
-            "HOST_TOOLCHAIN_FILE": "${workspaceFolder}/${config:host.workDir}/${config:host.toolchainFile}",
-            "BUILD_TYPE": "${config:build.type}",
-            "BUILD_JOBS": "${config:build.jobs}"
-        }
+        "cwd": "${env:HOST_WORK_DIR}"
     },
     "tasks": [
+        {
+            "label": "Show development environment",
+            "type": "process",
+            "command": "printenv",
+            "args": [
+                "SDK_ROOT",
+                "HOST_WORK_DIR",
+                "HOST_BUILD_DIR",
+                "HOST_APP_PATH",
+                "SDK_SYSROOT",
+                "SDK_TOOLCHAIN_FILE",
+                "SDK_GDB",
+                "TARGET_SSH_HOST",
+                "TARGET_WORK_DIR",
+                "TARGET_APP_PATH",
+                "SDK_DEBUG_ARCH"
+            ],
+            "problemMatcher": []
+        },
         {
             "label": "Copy sysroot",
             "type": "process",
@@ -56,15 +60,6 @@
             "problemMatcher": "$gcc"
         },
         {
-            "label": "Prepare target",
-            "type": "process",
-            "command": "bash",
-            "args": [
-                "scripts/prepare.sh"
-            ],
-            "problemMatcher": []
-        },
-        {
             "label": "Deploy program",
             "type": "process",
             "command": "bash",
@@ -87,9 +82,28 @@
             "type": "process",
             "command": "bash",
             "args": [
-                "scripts/console.sh"
+                "scripts/debug-console.sh"
             ],
-            "problemMatcher": []
+            "problemMatcher": {
+                "owner": "target-console",
+                "pattern": {
+                    "regexp": "^(.+):(\\d+): (.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Opening target console$",
+                    "endsPattern": "^Target console ready$"
+                }
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            }
         },
         {
             "label": "Build cross",
@@ -109,7 +123,6 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Build cross",
-                "Prepare target",
                 "Deploy program"
             ],
             "problemMatcher": []
@@ -120,6 +133,15 @@
             "dependsOn": [
                 "Copy sysroot",
                 "Fix sysroot links"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Debug target",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Deploy cross",
+                "Open target console"
             ],
             "problemMatcher": []
         }

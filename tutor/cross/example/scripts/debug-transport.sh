@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-set -eu
+set -e
 
-target_ssh_host=$1
-target_work_dir=$2
-target_app_path=$3
-target_gdbserver=$4
-target_tty=$5
+tty_file="$HOST_BUILD_DIR/target.tty"
 
-ssh -T -o BatchMode=yes "$target_ssh_host" \
-    "cd '$target_work_dir' && exec '$target_gdbserver' --once --wrapper /bin/sh '$target_work_dir/console-wrapper.sh' '$target_tty' -- stdio '$target_app_path'"
+target_tty=$(cat "$tty_file")
+exec ssh -T "$TARGET_SSH_HOST" \
+    "cd '$TARGET_WORK_DIR' && exec '$TARGET_GDBSERVER' --once --wrapper /bin/sh -c '\"exec $TARGET_APP_PATH < $target_tty > $target_tty 2>&1\"' -- stdio '$TARGET_APP_PATH'"
