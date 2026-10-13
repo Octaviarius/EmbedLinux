@@ -22,11 +22,11 @@
 
 | Категория | Переменные окружения | Пример обращения в кросс-конфигурации VS Code |
 |---|---|---|
-| Целевое устройство | `TARGET_SSH_HOST`, `TARGET_WORK_DIR`, `TARGET_GDBSERVER` | `${env:TARGET_SSH_HOST}` |
-| SDK | `SDK_ROOT`, `SDK_SYSROOT`, `SDK_TOOLCHAIN_FILE`, `SDK_GDB` | `${env:SDK_SYSROOT}` |
-| Компьютер разработчика | `HOST_WORK_DIR`, `HOST_BUILD_DIR` | `${env:HOST_BUILD_DIR}` |
-| Исполняемые файлы | `HOST_APP_PATH`, `TARGET_APP_PATH` | `${env:HOST_APP_PATH}` |
-| Параметры сборки | `BUILD_TYPE`, `BUILD_JOBS` | Задачи передают их скриптам через унаследованное окружение |
+| Целевое устройство | `TARGET_SSH_HOST`, `TARGET_WORK_DIR`, `TARGET_GDBSERVER` | `${config:target.sshHost}` |
+| SDK | `SDK_ROOT`, `SDK_SYSROOT`, `SDK_TOOLCHAIN_FILE`, `SDK_GDB` | `${config:sdk.sysroot}` |
+| Компьютер разработчика | `HOST_WORK_DIR`, `HOST_BUILD_DIR` | `${config:host.buildDir}` |
+| Исполняемые файлы | `HOST_APP_PATH`, `TARGET_APP_PATH` | `${config:host.appPath}` |
+| Параметры сборки | `BUILD_TYPE`, `BUILD_JOBS` | Задачи передают их скриптам через `options.env` |
 
 В нативном варианте также используются отдельные настройки VS Code `target.*` / `build.*`; их соответствие переменным описано в [нативном туториале](../tutor/native/README.md).
 
@@ -40,7 +40,7 @@
 
 В нативном туториале VS Code хранит компоненты путей в `settings.json`: `target.workDir` — абсолютный путь, `target.buildDir` — относительно него, `target.appPath` — относительно каталога сборки. Полные пути соединяются непосредственно в задачах и отладке.
 
-В кросс-туториале SDK и проект экспортируют готовые абсолютные пути через `sdk/environment-setup` и `project.env`. Скрипты и VS Code используют одно окружение; в JSON значения читаются через `${env:...}`. На target `TARGET_WORK_DIR` — каталог установки, сборка выполняется только на host. Для WSL окружение редактора загружается через `~/.vscode-server/server-env-setup`; настройка описана в [кросс-туториале](../tutor/cross/README.md#сборка-и-отладка-в-vs-code).
+В кросс-туториале SDK и проект экспортируют готовые абсолютные пути через `sdk/environment-setup` и `project.env` для работы из Bash. VS Code хранит отдельную копию параметров в `settings.json`: `sdk.*`, `host.*`, `target.*`, `build.*`. Задачи передают готовые переменные скриптам через `options.env`; отладка читает настройки напрямую. Окружение сервера WSL менять не требуется. При изменении SDK или проекта согласуйте файлы Bash и настройки VS Code.
 
 ## Windows и WSL
 

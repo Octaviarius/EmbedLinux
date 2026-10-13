@@ -1,11 +1,29 @@
 {
     "version": "2.0.0",
     "options": {
-        "cwd": "${env:HOST_WORK_DIR}"
+        "cwd": "${workspaceFolder}",
+        "env": {
+            "SDK_ROOT": "${workspaceFolder}/${config:sdk.root}",
+            "SDK_SYSROOT": "${config:sdk.sysroot}",
+            "SDK_TOOLCHAIN_FILE": "${workspaceFolder}/${config:sdk.root}/${config:sdk.toolchainFile}",
+            "SDK_GDB": "${config:sdk.gdb}",
+            "SDK_TARGET_LOADER": "${config:sdk.targetLoader}",
+            "SDK_TARGET_MULTIARCH": "${config:sdk.targetMultiarch}",
+            "SDK_DEBUG_ARCH": "${config:sdk.debugArch}",
+            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
+            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
+            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
+            "TARGET_SSH_HOST": "${config:target.sshHost}",
+            "TARGET_WORK_DIR": "${config:target.workDir}",
+            "TARGET_APP_PATH": "${config:target.workDir}/${config:target.appPath}",
+            "TARGET_GDBSERVER": "${config:target.gdbserver}",
+            "BUILD_TYPE": "${config:build.type}",
+            "BUILD_JOBS": "${config:build.jobs}"
+        }
     },
     "tasks": [
         {
-            "label": "Show development environment",
+            "label": "Show Environment Only",
             "type": "process",
             "command": "printenv",
             "args": [
@@ -24,7 +42,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Copy sysroot",
+            "label": "Copy Sysroot Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -33,7 +51,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Fix sysroot links",
+            "label": "Fix Sysroot Links Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -42,7 +60,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Configure cross",
+            "label": "Configure Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -51,7 +69,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Compile cross",
+            "label": "Build Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -60,7 +78,7 @@
             "problemMatcher": "$gcc"
         },
         {
-            "label": "Deploy program",
+            "label": "Deploy Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -69,7 +87,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run on target",
+            "label": "Run Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -78,7 +96,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Open target console",
+            "label": "Console Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -106,11 +124,11 @@
             }
         },
         {
-            "label": "Build cross",
+            "label": "Build",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Configure cross",
-                "Compile cross"
+                "Configure Only",
+                "Build Only"
             ],
             "group": {
                 "kind": "build",
@@ -119,29 +137,29 @@
             "problemMatcher": []
         },
         {
-            "label": "Deploy cross",
+            "label": "Deploy",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Build cross",
-                "Deploy program"
+                "Build",
+                "Deploy Only"
             ],
             "problemMatcher": []
         },
         {
-            "label": "Sync sysroot",
+            "label": "Sync Sysroot",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Copy sysroot",
-                "Fix sysroot links"
+                "Copy Sysroot Only",
+                "Fix Sysroot Links Only"
             ],
             "problemMatcher": []
         },
         {
-            "label": "Debug target",
+            "label": "Debug",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Deploy cross",
-                "Open target console"
+                "Deploy",
+                "Console Only"
             ],
             "problemMatcher": []
         }

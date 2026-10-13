@@ -1,15 +1,24 @@
 {
+    "sdk.root": "sdk",
+    "sdk.sysroot": "/home/agomanchuk/sysroots/rpi0",
+    "sdk.toolchainFile": "cmake/linux-toolchain.cmake",
+    "sdk.gdb": "/usr/bin/gdb-multiarch",
+    "sdk.targetLoader": "/lib/ld-linux-aarch64.so.1",
+    "sdk.targetMultiarch": "aarch64-linux-gnu",
+    "sdk.debugArch": "arm64",
+    "host.workDir": ".",
+    "host.buildDir": "build/debug",
+    "host.appPath": "cross_example",
+    "target.sshHost": "pi-dev",
+    "target.workDir": "/home/dev/work/hello-cross",
+    "target.appPath": "cross_example",
+    "target.gdbserver": "/usr/bin/gdbserver",
+    "build.type": "Debug",
+    "build.jobs": "2",
     "C_Cpp.default.compileCommands": [
-        "${env:HOST_BUILD_DIR}/compile_commands.json"
+        "${workspaceFolder}/build/debug/compile_commands.json"
     ],
     "C_Cpp.default.cStandard": "c11",
     "C_Cpp.default.cppStandard": "c++17",
-    "cmake.sourceDirectory": "${env:HOST_WORK_DIR}/project",
-    "cmake.buildDirectory": "${env:HOST_BUILD_DIR}",
-    "cmake.configureOnOpen": false,
-    "cmake.configureSettings": {
-        "CMAKE_TOOLCHAIN_FILE": "${env:SDK_TOOLCHAIN_FILE}",
-        "CMAKE_BUILD_TYPE": "${env:BUILD_TYPE}",
-        "CMAKE_EXPORT_COMPILE_COMMANDS": true
-    }
+    "cmake.configureOnOpen": false
 }

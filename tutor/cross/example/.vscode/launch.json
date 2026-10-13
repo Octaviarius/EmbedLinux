@@ -5,29 +5,29 @@
             "name": "Cross: local GDB via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${env:HOST_APP_PATH}",
-            "cwd": "${env:HOST_WORK_DIR}",
+            "program": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
+            "cwd": "${workspaceFolder}/${config:host.workDir}",
             "MIMode": "gdb",
-            "miDebuggerPath": "${env:SDK_GDB}",
-            "preLaunchTask": "Debug target",
+            "miDebuggerPath": "${config:sdk.gdb}",
+            "preLaunchTask": "Debug",
             "setupCommands": [
                 {
-                    "text": "set sysroot ${env:SDK_SYSROOT}"
+                    "text": "set sysroot ${config:sdk.sysroot}"
                 }
             ],
             "customLaunchSetupCommands": [
                 {
-                    "text": "file \"${env:HOST_APP_PATH}\""
+                    "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },
                 {
-                    "text": "target remote | bash \"${env:HOST_WORK_DIR}/scripts/debug-transport.sh\""
+                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\""
                 },
                 {
                     "text": "tbreak main"
                 }
             ],
             "launchCompleteCommand": "exec-continue",
-            "targetArchitecture": "${env:SDK_DEBUG_ARCH}"
+            "targetArchitecture": "${config:sdk.debugArch}"
         }
     ]
 }
