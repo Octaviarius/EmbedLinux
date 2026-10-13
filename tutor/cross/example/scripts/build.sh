@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 set -eu
-cmake --build "$CROSS_BUILD_DIR" --parallel "$CROSS_JOBS"
+cmake --build "$HOST_BUILD_DIR" --parallel "$BUILD_JOBS"

@@ -3,12 +3,12 @@
     "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-            "TARGET_HOST": "${config:target.host}",
-            "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
-            "TARGET_PROGRAM": "${config:target.program}",
-            "TARGET_JOBS": "${config:target.jobs}",
-            "TARGET_BUILD_TYPE": "${config:target.buildType}",
-            "TARGET_BUILD_DIR": "${config:target.buildDir}"
+            "TARGET_SSH_HOST": "${config:target.sshHost}",
+            "TARGET_WORK_DIR": "${config:target.workDir}",
+            "TARGET_BUILD_DIR": "${config:target.workDir}/${config:target.buildDir}",
+            "TARGET_APP_PATH": "${config:target.workDir}/${config:target.buildDir}/${config:target.appPath}",
+            "BUILD_TYPE": "${config:build.type}",
+            "BUILD_JOBS": "${config:build.jobs}"
         }
     },
     "tasks": [

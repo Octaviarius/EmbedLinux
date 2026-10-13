@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
 set -eu
-ssh -T -o BatchMode=yes "$1" \
-    "cd '$2' && exec '$5' --once --wrapper /bin/sh '$3/console-wrapper.sh' '$6' -- stdio '$3/$4'"
+
+target_ssh_host=$1
+target_work_dir=$2
+target_app_path=$3
+target_gdbserver=$4
+target_tty=$5
+
+ssh -T -o BatchMode=yes "$target_ssh_host" \
+    "cd '$target_work_dir' && exec '$target_gdbserver' --once --wrapper /bin/sh '$target_work_dir/console-wrapper.sh' '$target_tty' -- stdio '$target_app_path'"

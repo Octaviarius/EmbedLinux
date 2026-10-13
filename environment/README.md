@@ -3,6 +3,7 @@
 ## Содержание
 
 - [Назначение](#назначение)
+- [Host, target и имена параметров](#host-target-и-имена-параметров)
 - [Windows и WSL](#windows-и-wsl)
 - [Ubuntu, Debian и близкие системы](#ubuntu-debian-и-близкие-системы)
 - [VS Code и расположение проекта](#vs-code-и-расположение-проекта)
@@ -14,6 +15,26 @@
 Общие настройки рабочего компьютера для туториалов. Основной вариант — **Windows, WSL 2 с Ubuntu и VS Code**. При работе в Ubuntu/Debian напрямую команды Bash и пакеты те же, а установка WSL не требуется.
 
 Это окружение компьютера разработчика. Linux на целевом устройстве — отдельная система со своими пакетами, пользователями и путями.
+
+## Host, target и имена параметров
+
+**Host** — компьютер разработчика; в варианте с Windows команды выполняются в Ubuntu/WSL. **Target** — целевое Linux-устройство, на котором запускается приложение. При нативной сборке компилятор работает на target, при кросс-сборке — на host; роли систем от этого не меняются.
+
+| Категория | Переменные Bash | Настройки VS Code |
+|---|---|---|
+| Целевое устройство | `TARGET_SSH_HOST`, `TARGET_WORK_DIR`, `TARGET_BUILD_DIR`, `TARGET_GDBSERVER` | `target.sshHost`, `target.workDir`, `target.buildDir`, `target.gdbserver` |
+| Компьютер разработчика | `HOST_WORK_DIR`, `HOST_BUILD_DIR`, `HOST_SYSROOT`, `HOST_TOOLCHAIN_FILE`, `HOST_GDB` | `host.workDir`, `host.buildDir`, `host.sysroot`, `host.toolchainFile`, `host.gdb` |
+| Исполняемый файл приложения на host | `HOST_APP_PATH` | `host.appPath` |
+| Исполняемый файл приложения на target | `TARGET_APP_PATH` | `target.appPath` |
+| Параметры сборки | `BUILD_TYPE`, `BUILD_JOBS` | `build.type`, `build.jobs` |
+
+Префикс указывает, к какой системе относится настройка. Для путей это место хранения: `HOST_SYSROOT` находится на host, хотя содержит заголовки и библиотеки target. `TARGET_SSH_HOST` — адрес или алиас подключения к target; он настраивается на host.
+
+Архитектура и компиляторы кросс-сборки задаются в toolchain-файле CMake, без дублирования в переменных окружения. В примерах используются только параметры, необходимые соответствующему варианту.
+
+`TARGET_APP_PATH` — полный путь к исполняемому файлу на target. Он используется для запуска, передачи и отладки. Имя приложения фиксируется в CMake самого проекта; этот параметр его не меняет.
+
+В Bash пути формируются последовательно и имеют абсолютные значения: `WORK_DIR → BUILD_DIR → APP_PATH`. В VS Code `target.workDir` — абсолютный путь на устройстве, `host.workDir` — относительно `${workspaceFolder}`; `host.buildDir` — относительно рабочего каталога host, `host.appPath` — относительно каталога сборки. В нативном примере `target.buildDir` — относительно `target.workDir`, `target.appPath` — относительно него. В кросс-примере `target.workDir` — каталог установки, `target.appPath` — относительно него; каталога сборки на target нет. `host.toolchainFile` — относительно `host.workDir`, а `host.sysroot` — абсолютный путь к sysroot на host. Полный путь соединяется непосредственно в `tasks.json` или `launch.json`, без вложенных `${config:...}` в настройках.
 
 ## Windows и WSL
 

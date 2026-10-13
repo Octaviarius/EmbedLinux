@@ -213,12 +213,13 @@ ssh -F "$HOME/.ssh/pi-dev" pi-dev
 
 ```bash
 #!/usr/bin/env bash
+target_ip=$1
 config_path=${2:-"$HOME/.ssh/conf.d/pi-dev"}
 mkdir -p "$(dirname "$config_path")"
 umask 077
 cat > "$config_path" <<EOF
 Host pi-dev
-    HostName $1
+    HostName $target_ip
     User dev
     IdentityFile ~/.ssh/rpi-dev
     IdentitiesOnly yes
@@ -237,7 +238,7 @@ ssh -o BatchMode=yes pi-dev 'whoami; hostname'
 
 Для варианта `-F` добавьте `-F "$HOME/.ssh/pi-dev"` в проверочную команду. Ожидаются пользователь и имя устройства без запроса ввода. `BatchMode=yes` запрещает интерактивные запросы: такая проверка подходит для автоматических задач сборки. Если ключ защищён парольной фразой, он должен быть загружен в агент, доступный процессу VS Code. Запускайте `code .` из терминала, где работает агент; уже открытое окно может не получить его окружение.
 
-После этого в [нативном туториале](../native/README.md) задайте `target.host` равным `pi-dev`.
+После этого в [нативном туториале](../native/README.md) задайте `target.sshHost` равным `pi-dev`.
 
 | Ошибка | Что проверить |
 |---|---|

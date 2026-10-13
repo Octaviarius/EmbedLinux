@@ -5,31 +5,31 @@
             "name": "Cross: local GDB via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/${config:cross.buildDir}/${config:target.program}",
+            "program": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
             "cwd": "${workspaceFolder}",
             "args": [],
             "MIMode": "gdb",
-            "miDebuggerPath": "${config:cross.gdb}",
+            "miDebuggerPath": "${config:host.gdb}",
             "preLaunchTask": "Deploy cross",
             "externalConsole": false,
             "setupCommands": [
                 {
-                    "text": "set sysroot ${workspaceFolder}/${config:cross.sysroot}"
+                    "text": "set sysroot ${config:host.sysroot}"
                 }
             ],
             "customLaunchSetupCommands": [
                 {
-                    "text": "file \"${workspaceFolder}/${config:cross.buildDir}/${config:target.program}\""
+                    "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },
                 {
-                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.host}\" \"${config:target.remoteDir}\" \"${config:target.buildDir}\" \"${config:target.program}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
+                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
                 },
                 {
                     "text": "tbreak main"
                 }
             ],
             "launchCompleteCommand": "exec-continue",
-            "targetArchitecture": "${config:cross.debugArch}"
+            "targetArchitecture": "${config:target.debugArch}"
         }
     ],
     "inputs": [

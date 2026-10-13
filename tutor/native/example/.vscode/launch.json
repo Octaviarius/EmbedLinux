@@ -5,8 +5,8 @@
             "name": "Native: GDB on target via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${config:target.buildDir}/${config:target.program}",
-            "cwd": "${config:target.remoteDir}",
+            "program": "${config:target.workDir}/${config:target.buildDir}/${config:target.appPath}",
+            "cwd": "${config:target.workDir}",
             "args": [],
             "MIMode": "gdb",
             "preLaunchTask": "Build on target",
@@ -18,14 +18,14 @@
                     "-T",
                     "-o",
                     "BatchMode=yes",
-                    "${config:target.host}"
+                    "${config:target.sshHost}"
                 ],
                 "pipeCwd": "${workspaceFolder}",
                 "debuggerPath": "${config:target.gdb}"
             },
             "setupCommands": [
                 {
-                    "text": "set substitute-path \"${config:target.remoteDir}/project\" \"${workspaceFolder}/project\""
+                    "text": "set substitute-path \"${config:target.workDir}/project\" \"${workspaceFolder}/project\""
                 },
                 {
                     "text": "set inferior-tty ${input:targetTty}"

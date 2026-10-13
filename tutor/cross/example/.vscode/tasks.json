@@ -3,18 +3,19 @@
     "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-            "TARGET_HOST": "${config:target.host}",
-            "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
-            "TARGET_BUILD_DIR": "${config:target.buildDir}",
-            "TARGET_PROGRAM": "${config:target.program}",
+            "TARGET_SSH_HOST": "${config:target.sshHost}",
+            "TARGET_WORK_DIR": "${config:target.workDir}",
+            "TARGET_APP_PATH": "${config:target.workDir}/${config:target.appPath}",
             "TARGET_GDBSERVER": "${config:target.gdbserver}",
             "TARGET_LOADER": "${config:target.loader}",
-            "CROSS_TRIPLE": "${config:cross.triple}",
-            "CROSS_JOBS": "${config:cross.jobs}",
-            "CROSS_BUILD_TYPE": "${config:cross.buildType}",
-            "CROSS_BUILD_DIR": "${workspaceFolder}/${config:cross.buildDir}",
-            "CROSS_SYSROOT": "${workspaceFolder}/${config:cross.sysroot}",
-            "CROSS_TOOLCHAIN": "${workspaceFolder}/${config:cross.toolchain}"
+            "TARGET_LIB_TRIPLE": "${config:target.libTriple}",
+            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
+            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
+            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
+            "HOST_SYSROOT": "${config:host.sysroot}",
+            "HOST_TOOLCHAIN_FILE": "${workspaceFolder}/${config:host.workDir}/${config:host.toolchainFile}",
+            "BUILD_TYPE": "${config:build.type}",
+            "BUILD_JOBS": "${config:build.jobs}"
         }
     },
     "tasks": [

@@ -3,10 +3,10 @@ set(CMAKE_SYSTEM_PROCESSOR aarch64)
 set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
 set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
 
-if("$ENV{CROSS_SYSROOT}" STREQUAL "")
-    message(FATAL_ERROR "Set CROSS_SYSROOT before configuring the cross build")
+if("$ENV{HOST_SYSROOT}" STREQUAL "")
+    message(FATAL_ERROR "Set HOST_SYSROOT before configuring the cross build")
 endif()
-set(CMAKE_SYSROOT "$ENV{CROSS_SYSROOT}")
+set(CMAKE_SYSROOT "$ENV{HOST_SYSROOT}")
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)

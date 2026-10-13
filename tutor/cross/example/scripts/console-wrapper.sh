@@ -1,4 +1,6 @@
 #!/bin/sh
-terminal=$1
+target_tty=$1
 shift
-exec "$@" < "$terminal" > "$terminal" 2>&1
+
+# Remaining arguments are the application command and its arguments.
+exec "$@" < "$target_tty" > "$target_tty" 2>&1

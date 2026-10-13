@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 set -eu
-mkdir -p "$CROSS_SYSROOT/usr/lib" "$CROSS_SYSROOT/lib"
+mkdir -p "$HOST_SYSROOT/usr/lib" "$HOST_SYSROOT/lib"
 rsync -rlt --delete -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:/usr/include/" "$CROSS_SYSROOT/usr/include/"
+    "$TARGET_SSH_HOST:/usr/include/" "$HOST_SYSROOT/usr/include/"
 rsync -rlt --delete -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:/usr/lib/$CROSS_TRIPLE/" "$CROSS_SYSROOT/usr/lib/$CROSS_TRIPLE/"
-rsync -rlt --delete --link-dest="$CROSS_SYSROOT/usr/lib/$CROSS_TRIPLE" \
-    -e 'ssh -o BatchMode=yes' "$TARGET_HOST:/lib/$CROSS_TRIPLE/" "$CROSS_SYSROOT/lib/$CROSS_TRIPLE/"
+    "$TARGET_SSH_HOST:/usr/lib/$TARGET_LIB_TRIPLE/" "$HOST_SYSROOT/usr/lib/$TARGET_LIB_TRIPLE/"
+rsync -rlt --delete --link-dest="$HOST_SYSROOT/usr/lib/$TARGET_LIB_TRIPLE" \
+    -e 'ssh -o BatchMode=yes' "$TARGET_SSH_HOST:/lib/$TARGET_LIB_TRIPLE/" "$HOST_SYSROOT/lib/$TARGET_LIB_TRIPLE/"
 rsync -rlt -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:$TARGET_LOADER" "$CROSS_SYSROOT$TARGET_LOADER"
+    "$TARGET_SSH_HOST:$TARGET_LOADER" "$HOST_SYSROOT$TARGET_LOADER"

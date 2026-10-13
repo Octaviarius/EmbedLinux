@@ -138,48 +138,56 @@ hello-cross/
     └── sysroot/          # копия заголовков и библиотек
 ```
 
-На устройстве `TARGET_REMOTE_DIR` — общий рабочий каталог, а `TARGET_BUILD_DIR` — каталог переданной программы внутри него. Там могут находиться другие каталоги и данные. В кросс-примере каталог `project/` на устройстве не нужен.
+На устройстве `TARGET_WORK_DIR` — каталог установки и рабочий каталог приложения. В него передаются программа и `console-wrapper.sh`; там также могут находиться данные приложения. В кросс-примере каталог `project/` на устройстве не нужен.
 
 | Переменная | Где действует | Назначение |
 |---|---|---|
-| `TARGET_HOST` | Компьютер | SSH-алиас устройства |
-| `TARGET_REMOTE_DIR` | Устройство | Рабочий каталог приложения |
-| `TARGET_BUILD_DIR` | Устройство | Каталог переданного исполняемого файла |
-| `TARGET_PROGRAM` | Обе системы | Имя программы |
+| `TARGET_SSH_HOST` | Компьютер | SSH-алиас устройства |
+| `TARGET_WORK_DIR` | Устройство | Рабочий каталог приложения |
 | `TARGET_GDBSERVER` | Устройство | Путь к gdbserver |
 | `TARGET_LOADER` | Устройство | Путь к загрузчику glibc для копирования sysroot |
-| `CROSS_BUILD_DIR` | Компьютер | Полный путь к каталогу сборки |
-| `CROSS_SYSROOT` | Компьютер | Полный путь к sysroot |
-| `CROSS_TOOLCHAIN` | Компьютер | Полный путь к toolchain-файлу CMake |
-| `CROSS_TRIPLE` | Компьютер | Имя каталога библиотек Debian multiarch для копирования sysroot |
-| `CROSS_GDB` | Компьютер | Путь к GDB с поддержкой целевой архитектуры |
-| `CROSS_JOBS`, `CROSS_BUILD_TYPE` | Компьютер | Параллелизм и тип сборки |
+| `HOST_BUILD_DIR` | Компьютер | Полный путь к каталогу сборки |
+| `HOST_SYSROOT` | Компьютер | Полный путь к sysroot |
+| `HOST_TOOLCHAIN_FILE` | Компьютер | Полный путь к toolchain-файлу CMake |
+| `TARGET_LIB_TRIPLE` | Компьютер | Имя каталога библиотек Debian multiarch для копирования sysroot |
+| `HOST_GDB` | Компьютер | Путь к GDB с поддержкой целевой архитектуры |
+| `TARGET_APP_PATH` | Устройство | Полный путь к исполняемому файлу на target |
+| `HOST_WORK_DIR` | Компьютер | Корень рабочего примера на host |
+| `HOST_APP_PATH` | Компьютер | Полный путь к собранному файлу на host |
+| `BUILD_JOBS`, `BUILD_TYPE` | Компьютер | Параллелизм и тип сборки |
 
 Готовый **`target.env`** ([файл](example/target.env)); загрузите его из корня примера:
 
 ```bash
-export TARGET_HOST=pi-dev
-export TARGET_REMOTE_DIR=/home/dev/work/hello-cross
-export TARGET_BUILD_DIR="$TARGET_REMOTE_DIR/build"
-export TARGET_PROGRAM=hello
+export TARGET_SSH_HOST=pi-dev
+export TARGET_WORK_DIR=/home/dev/work/hello-cross
+export TARGET_APP_PATH="$TARGET_WORK_DIR/cross_example"
 export TARGET_GDBSERVER=/usr/bin/gdbserver
 export TARGET_LOADER=/lib/ld-linux-aarch64.so.1
-export CROSS_BUILD_DIR="$PWD/build/debug"
-export CROSS_SYSROOT="$PWD/build/sysroot"
-export CROSS_TOOLCHAIN="$PWD/cmake/linux-toolchain.cmake"
-export CROSS_TRIPLE=aarch64-linux-gnu
-export CROSS_GDB=/usr/bin/gdb-multiarch
-export CROSS_JOBS=2
-export CROSS_BUILD_TYPE=Debug
+export TARGET_LIB_TRIPLE=aarch64-linux-gnu
+
+export HOST_WORK_DIR="$PWD"
+export HOST_BUILD_DIR="$HOST_WORK_DIR/build/debug"
+export HOST_APP_PATH="$HOST_BUILD_DIR/cross_example"
+export HOST_SYSROOT="$HOST_WORK_DIR/build/sysroot"
+export HOST_TOOLCHAIN_FILE="$HOST_WORK_DIR/cmake/linux-toolchain.cmake"
+export HOST_GDB=/usr/bin/gdb-multiarch
+
+export BUILD_TYPE=Debug
+export BUILD_JOBS=2
 ```
 
-Архитектуру и пути компиляторов изменяйте в `cmake/linux-toolchain.cmake`. Отдельные переменные окружения для них не нужны. `CROSS_SYSROOT` остаётся общим параметром для копирования библиотек, CMake и GDB; `CROSS_TRIPLE` используется только для каталогов Debian multiarch при копировании.
+`TARGET_APP_PATH` в Bash — полный путь, сформированный из `TARGET_WORK_DIR`. В VS Code `target.workDir` — полный путь к каталогу установки на устройстве, `target.appPath` — относительно него. Задачи и отладчик соединяют эти два параметра непосредственно при вызове. Сборка выполняется только на host.
+
+
+
+Архитектуру и пути компиляторов изменяйте в `cmake/linux-toolchain.cmake`. Отдельные переменные окружения для них не нужны. `HOST_SYSROOT` остаётся общим параметром для копирования библиотек, CMake и GDB; `TARGET_LIB_TRIPLE` используется только для каталогов Debian multiarch при копировании.
 
 `$PWD` раскрывается при `source target.env`. Скрипты запускайте из корня примера. При смене компилятора, архитектуры или sysroot используйте новый каталог сборки: CMake сохраняет выбор toolchain в кеше. Для параметров удалённых команд используйте значения без кавычек, переводов строк и shell-символов.
 
 ## Подготовьте sysroot
 
-Если SDK уже содержит sysroot, укажите его путь в `CROSS_SYSROOT` и пропустите копирование с устройства.
+Если SDK уже содержит sysroot, укажите его путь в `HOST_SYSROOT` и пропустите копирование с устройства.
 
 Для приведённой Debian multiarch-конфигурации **на компьютере**:
 
@@ -189,7 +197,7 @@ bash scripts/sysroot.sh
 bash scripts/fix-sysroot-links.sh
 ```
 
-Скрипт копирует `/usr/include`, библиотеки `/usr/lib/$CROSS_TRIPLE` и `/lib/$CROSS_TRIPLE`, а также загрузчик `TARGET_LOADER`. При первой синхронизации может передаваться большой объём; сжатие не включено, чтобы не нагружать CPU устройства. `--link-dest` повторно использует уже скопированные файлы, когда `/lib` и `/usr/lib` содержат одинаковые библиотеки: это экономит передачу и место. Символические ссылки сохраняются без дублирования больших библиотек. Отдельный `fix-sysroot-links.sh` превращает абсолютные ссылки в относительные пути внутри локального sysroot, чтобы они не обращались к файлам компьютера. `--delete` удаляет устаревшие файлы только в соответствующих локальных каталогах sysroot. После изменения загрузчика замените sysroot целиком либо удалите старую копию загрузчика вручную.
+Скрипт копирует `/usr/include`, библиотеки `/usr/lib/$TARGET_LIB_TRIPLE` и `/lib/$TARGET_LIB_TRIPLE`, а также загрузчик `TARGET_LOADER`. При первой синхронизации может передаваться большой объём; сжатие не включено, чтобы не нагружать CPU устройства. `--link-dest` повторно использует уже скопированные файлы, когда `/lib` и `/usr/lib` содержат одинаковые библиотеки: это экономит передачу и место. Символические ссылки сохраняются без дублирования больших библиотек. Отдельный `fix-sysroot-links.sh` превращает абсолютные ссылки в относительные пути внутри локального sysroot, чтобы они не обращались к файлам компьютера. `--delete` удаляет устаревшие файлы только в соответствующих локальных каталогах sysroot. После изменения загрузчика замените sysroot целиком либо удалите старую копию загрузчика вручную.
 
 Это sysroot для примера и библиотек из указанных каталогов. Для зависимостей из `/opt`, других каталогов библиотек или другой libc используйте SDK либо дополните процедуру копирования. Исправление символических ссылок не меняет пути внутри linker scripts и файлов pkg-config. Если проект использует pkg-config, отдельно настройте поиск его метаданных в целевом sysroot.
 
@@ -224,10 +232,10 @@ bash scripts/build.sh && bash scripts/deploy.sh && bash scripts/run.sh
 |---|---|---|
 | [sysroot.sh](example/scripts/sysroot.sh) | rsync получает целевые заголовки, библиотеки и загрузчик | Локальный sysroot |
 | [fix-sysroot-links.sh](example/scripts/fix-sysroot-links.sh) | Исправляет абсолютные символические ссылки в скопированном sysroot | Относительные ссылки внутри локальной копии |
-| [configure.sh](example/scripts/configure.sh) | Локальный CMake читает `project/`, toolchain и параметры | Правила Ninja в `CROSS_BUILD_DIR` |
+| [configure.sh](example/scripts/configure.sh) | Локальный CMake читает `project/`, toolchain и параметры | Правила Ninja в `HOST_BUILD_DIR` |
 | [build.sh](example/scripts/build.sh) | Локальный Ninja вызывает кросс-компилятор и линковщик | Целевой исполняемый файл с символами |
-| [prepare.sh](example/scripts/prepare.sh) | SSH создаёт рабочий каталог и каталог программы | `TARGET_REMOTE_DIR` и `TARGET_BUILD_DIR` |
-| [deploy.sh](example/scripts/deploy.sh) | rsync передаёт программу и оболочку консольного ввода | Копия программы и `console-wrapper.sh` в `TARGET_BUILD_DIR` |
+| [prepare.sh](example/scripts/prepare.sh) | SSH создаёт каталог установки | `TARGET_WORK_DIR` |
+| [deploy.sh](example/scripts/deploy.sh) | rsync передаёт программу и оболочку консольного ввода | Программа по пути `TARGET_APP_PATH`; `console-wrapper.sh` в `TARGET_WORK_DIR` |
 | [run.sh](example/scripts/run.sh) | SSH с терминалом запускает переданную программу | Обычное выполнение на устройстве |
 | [console.sh](example/scripts/console.sh) | SSH открывает терминал, печатает его TTY и удерживает соединение | Консоль stdin/stdout для отладки |
 | [debug-transport.sh](example/scripts/debug-transport.sh) | По параметрам вызывает gdbserver через SSH без терминала | Канал протокола удалённой отладки для локального GDB |
@@ -249,9 +257,9 @@ bash scripts/console.sh
 ```bash
 source target.env
 export TARGET_TTY=/dev/pts/2  # путь, показанный первым терминалом
-"$CROSS_GDB" "$CROSS_BUILD_DIR/$TARGET_PROGRAM" \
-    -ex "set sysroot $CROSS_SYSROOT" \
-    -ex "target remote | bash scripts/debug-transport.sh '$TARGET_HOST' '$TARGET_REMOTE_DIR' '$TARGET_BUILD_DIR' '$TARGET_PROGRAM' '$TARGET_GDBSERVER' '$TARGET_TTY'" \
+"$HOST_GDB" "$HOST_APP_PATH" \
+    -ex "set sysroot $HOST_SYSROOT" \
+    -ex "target remote | bash scripts/debug-transport.sh '$TARGET_SSH_HOST' '$TARGET_WORK_DIR' '$TARGET_APP_PATH' '$TARGET_GDBSERVER' '$TARGET_TTY'" \
     -ex "tbreak main" -ex continue
 ```
 
@@ -261,7 +269,7 @@ GDB остановится в `main`. Команды `next`, `step`, `finish`, `
 
 Откройте корень примера через `code .` из WSL и установите расширение C/C++ в WSL.
 
-В `.vscode/settings.json` задайте `target.*` для устройства и `cross.*` для компьютера. В примере `cross.buildDir`, `cross.sysroot` и `cross.toolchain` — пути **относительно корня примера**; задачи дополняют их `${workspaceFolder}/`. Компиляторы и архитектура задаются в `cmake/linux-toolchain.cmake`; путь GDB — абсолютный. `cross.debugArch` задаёт архитектуру адаптера VS Code: для AArch64 в примере используется `arm64` (в toolchain-файле эта архитектура называется `aarch64`). Для другой цели согласуйте оба параметра. Эти настройки отдельно от `target.env`: при запуске задач значения передаются через `options.env`.
+В `.vscode/settings.json` задайте `target.*` для устройства, `host.*` для компьютера и `build.*` для сборки. `target.workDir` — полный путь на target; `host.workDir` — относительно `${workspaceFolder}` (в примере `.`). `host.buildDir` задаётся относительно `host.workDir`, `host.appPath` — относительно каталога сборки. На target сборки нет: `target.appPath` задаётся относительно каталога установки `target.workDir`. `host.toolchainFile` задаётся относительно `host.workDir`; `host.sysroot` и путь GDB — абсолютные. В `host.sysroot` укажите свой полный путь к sysroot в WSL; он должен совпадать с `HOST_SYSROOT` в Bash. Задачи составляют полные пути в `options.env`. Компиляторы и архитектура задаются в toolchain-файле; `target.debugArch` — архитектура адаптера (`arm64` для AArch64).
 
 - `Sync sysroot` — обновить sysroot при необходимости.
 - **Ctrl+Shift+B** — локально настроить и собрать приложение.
@@ -270,13 +278,13 @@ GDB остановится в `main`. Команды `next`, `step`, `finish`, `
 - `Open target console` — открыть консоль отлаживаемой программы.
 - **F5** — указать показанный TTY и запустить подготовку и отладку с остановкой в `main`.
 
-IntelliSense использует кросс-компилятор и локальный `compile_commands.json`, включающий параметры sysroot. При изменении `cross.buildDir` согласуйте путь `C_Cpp.default.compileCommands`; при смене компилятора в toolchain-файле — `C_Cpp.default.compilerPath`. Автоматическая настройка CMake при открытии папки выключена. Настройки `cmake.*` предназначены для локального CMake Tools; сборка этого туториала выполняется нашими задачами, которые передают toolchain явно.
+IntelliSense использует кросс-компилятор и локальный `compile_commands.json`, включающий параметры sysroot. При изменении `host.buildDir` согласуйте путь `C_Cpp.default.compileCommands`; при смене компилятора в toolchain-файле — `C_Cpp.default.compilerPath`. Автоматическая настройка CMake при открытии папки выключена. Настройки `cmake.*` предназначены для локального CMake Tools; сборка этого туториала выполняется нашими задачами, которые передают toolchain явно.
 
 ### Как запускается удалённая отладка
 
 1. VS Code читает `launch.json` и запрашивает TTY ранее открытой консоли.
 2. `preLaunchTask: "Deploy cross"` последовательно вызывает локальные `configure.sh`, `build.sh`, затем удалённую подготовку `prepare.sh` и передачу `deploy.sh`. Sysroot автоматически не обновляется.
-3. Адаптер запускает GDB **в WSL** и загружает символы из `CROSS_BUILD_DIR/TARGET_PROGRAM`.
+3. Адаптер запускает GDB **в WSL** и загружает символы из `HOST_APP_PATH`.
 4. После явной загрузки локальных символов командой `file` команда `target remote | bash ...` запускает `debug-transport.sh`. Скрипт открывает SSH к устройству и запускает там `gdbserver --once ... stdio`.
 5. GDB и gdbserver обмениваются протоколом удалённой отладки через SSH. Сервер запускает приложение через консольную оболочку. Команда `tbreak main` ставит временную точку; адаптер продолжает выполнение до неё, затем можно идти по шагам и ставить свои точки останова.
 
@@ -291,13 +299,13 @@ IntelliSense использует кросс-компилятор и локал�
 | `cwd` | Рабочий каталог локального GDB; каталог приложения на устройстве задаётся в `debug-transport.sh` |
 | `miDebuggerPath` | Локальный GDB с поддержкой целевой архитектуры |
 | `preLaunchTask` | Составная задача `Deploy cross`; при каждом F5 повторяется, Ninja пропускает ненужную компиляцию |
-| `targetArchitecture` | Архитектура адаптера из `cross.debugArch`; в примере `arm64` |
+| `targetArchitecture` | Архитектура адаптера из `target.debugArch`; в примере `arm64` |
 | `setupCommands: set sysroot` | Место поиска целевых библиотек для локального GDB |
 | `customLaunchSetupCommands` | Загружает символы командой `file`, подключает через `target remote` и ставит временную точку `tbreak main` |
 | `launchCompleteCommand: exec-continue` | Продолжает уже созданный gdbserver процесс, вместо локального `run` |
 | `inputs: targetTty` | Запрашивает путь удалённой консоли, например `/dev/pts/2` |
 
-`debug-transport.sh` получает шесть аргументов: SSH-алиас, удалённый рабочий каталог, удалённый каталог программы, имя программы, путь gdbserver и TTY. Это параметры транспорта; они не передаются приложению.
+`debug-transport.sh` получает пять аргументов: SSH-алиас, каталог установки на устройстве, полный путь программы на устройстве, путь gdbserver и TTY. Это параметры транспорта; они не передаются приложению.
 
 Для отладки уже переданной версии можно удалить `preLaunchTask`; предварительно обеспечьте совпадение локального и удалённого исполняемых файлов. `pipeTransport` здесь не нужен: GDB работает локально. Описание настройки адаптера: [C/C++ launch.json](https://code.visualstudio.com/docs/cpp/launch-json-reference).
 
@@ -309,7 +317,13 @@ IntelliSense использует кросс-компилятор и локал�
 
 `console.sh` и канал gdbserver — два отдельных SSH-соединения. После закрытия консоли создайте новую и укажите её новый TTY. Для остановки и паузы используйте VS Code. Пример функций, проверки ввода и мест для breakpoint находится в [project/main.c](example/project/main.c); исходник в README не дублируется.
 
+При передаче приложения `deploy.sh` создаёт родительский каталог `TARGET_APP_PATH` и копирует файл из `HOST_APP_PATH` точно по этому пути. Обёртка консоли копируется отдельно в каталог установки `TARGET_WORK_DIR`.
+
+`HOST_APP_PATH` — полный путь к собранному приложению на host: `HOST_WORK_DIR → HOST_BUILD_DIR → HOST_APP_PATH`. В VS Code эта же иерархия задаётся относительными компонентами `host.workDir → host.buildDir → host.appPath`; полные пути составляются в задачах и `launch.json`. Путь на target может отличаться от пути на host.
+
 ## Готовые файлы окружения
+
+Имя проекта и приложения — `cross_example`; оно фиксировано в `project/CMakeLists.txt` и не задаётся извне. `TARGET_APP_PATH` в Bash указывает полный путь к готовому файлу на target, а `target.appPath` в VS Code — путь относительно каталога установки для запуска, передачи и отладки; параметр не передаётся в CMake и не переименовывает приложение.
 
 Все файлы создаются **на компьютере**, относительно корня [example](example). Приложение — самостоятельный проект в `project/`; toolchain, скрипты и настройки редактора находятся снаружи. `target.env` приведён выше.
 
@@ -317,12 +331,11 @@ IntelliSense использует кросс-компилятор и локал�
 
 ```cmake
 cmake_minimum_required(VERSION 3.21)
-project(hello_example LANGUAGES C CXX)
+project(cross_example LANGUAGES C CXX)
 
-set(APP_NAME hello CACHE STRING "Executable name")
-add_executable(${APP_NAME} main.c)
-target_compile_features(${APP_NAME} PRIVATE c_std_11)
-target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra)
+add_executable(cross_example main.c)
+target_compile_features(cross_example PRIVATE c_std_11)
+target_compile_options(cross_example PRIVATE -Wall -Wextra)
 ```
 
 **`cmake/linux-toolchain.cmake`** ([файл](example/cmake/linux-toolchain.cmake)):
@@ -333,10 +346,10 @@ set(CMAKE_SYSTEM_PROCESSOR aarch64)
 set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
 set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
 
-if("$ENV{CROSS_SYSROOT}" STREQUAL "")
-    message(FATAL_ERROR "Set CROSS_SYSROOT before configuring the cross build")
+if("$ENV{HOST_SYSROOT}" STREQUAL "")
+    message(FATAL_ERROR "Set HOST_SYSROOT before configuring the cross build")
 endif()
-set(CMAKE_SYSROOT "$ENV{CROSS_SYSROOT}")
+set(CMAKE_SYSROOT "$ENV{HOST_SYSROOT}")
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
@@ -349,15 +362,15 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
 ```bash
 #!/usr/bin/env bash
 set -eu
-mkdir -p "$CROSS_SYSROOT/usr/lib" "$CROSS_SYSROOT/lib"
+mkdir -p "$HOST_SYSROOT/usr/lib" "$HOST_SYSROOT/lib"
 rsync -rlt --delete -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:/usr/include/" "$CROSS_SYSROOT/usr/include/"
+    "$TARGET_SSH_HOST:/usr/include/" "$HOST_SYSROOT/usr/include/"
 rsync -rlt --delete -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:/usr/lib/$CROSS_TRIPLE/" "$CROSS_SYSROOT/usr/lib/$CROSS_TRIPLE/"
-rsync -rlt --delete --link-dest="$CROSS_SYSROOT/usr/lib/$CROSS_TRIPLE" \
-    -e 'ssh -o BatchMode=yes' "$TARGET_HOST:/lib/$CROSS_TRIPLE/" "$CROSS_SYSROOT/lib/$CROSS_TRIPLE/"
+    "$TARGET_SSH_HOST:/usr/lib/$TARGET_LIB_TRIPLE/" "$HOST_SYSROOT/usr/lib/$TARGET_LIB_TRIPLE/"
+rsync -rlt --delete --link-dest="$HOST_SYSROOT/usr/lib/$TARGET_LIB_TRIPLE" \
+    -e 'ssh -o BatchMode=yes' "$TARGET_SSH_HOST:/lib/$TARGET_LIB_TRIPLE/" "$HOST_SYSROOT/lib/$TARGET_LIB_TRIPLE/"
 rsync -rlt -e 'ssh -o BatchMode=yes' \
-    "$TARGET_HOST:$TARGET_LOADER" "$CROSS_SYSROOT$TARGET_LOADER"
+    "$TARGET_SSH_HOST:$TARGET_LOADER" "$HOST_SYSROOT$TARGET_LOADER"
 ```
 
 **`scripts/fix-sysroot-links.sh`** ([файл](example/scripts/fix-sysroot-links.sh)):
@@ -365,11 +378,11 @@ rsync -rlt -e 'ssh -o BatchMode=yes' \
 ```bash
 #!/usr/bin/env bash
 set -eu
-find "$CROSS_SYSROOT" -type l -print0 |
+find "$HOST_SYSROOT" -type l -print0 |
 while IFS= read -r -d '' link; do
     destination=$(readlink "$link")
     if [[ $destination == /* ]]; then
-        relative=$(realpath -ms --relative-to="$(dirname "$link")" "$CROSS_SYSROOT$destination")
+        relative=$(realpath -ms --relative-to="$(dirname "$link")" "$HOST_SYSROOT$destination")
         ln -sfn "$relative" "$link"
     fi
 done
@@ -380,10 +393,10 @@ done
 ```bash
 #!/usr/bin/env bash
 set -eu
-cmake -S project -B "$CROSS_BUILD_DIR" -G Ninja \
-    -DCMAKE_TOOLCHAIN_FILE="$CROSS_TOOLCHAIN" \
-    -DCMAKE_BUILD_TYPE="$CROSS_BUILD_TYPE" \
-    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DAPP_NAME="$TARGET_PROGRAM"
+cmake -S project -B "$HOST_BUILD_DIR" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$HOST_TOOLCHAIN_FILE" \
+    -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
+    -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 ```
 
 **`scripts/build.sh`** ([файл](example/scripts/build.sh)):
@@ -391,7 +404,7 @@ cmake -S project -B "$CROSS_BUILD_DIR" -G Ninja \
 ```bash
 #!/usr/bin/env bash
 set -eu
-cmake --build "$CROSS_BUILD_DIR" --parallel "$CROSS_JOBS"
+cmake --build "$HOST_BUILD_DIR" --parallel "$BUILD_JOBS"
 ```
 
 **`scripts/prepare.sh`** ([файл](example/scripts/prepare.sh)):
@@ -399,7 +412,7 @@ cmake --build "$CROSS_BUILD_DIR" --parallel "$CROSS_JOBS"
 ```bash
 #!/usr/bin/env bash
 set -eu
-ssh -o BatchMode=yes "$TARGET_HOST" "mkdir -p '$TARGET_REMOTE_DIR' '$TARGET_BUILD_DIR'"
+ssh -o BatchMode=yes "$TARGET_SSH_HOST" "mkdir -p '$TARGET_WORK_DIR'"
 ```
 
 **`scripts/deploy.sh`** ([файл](example/scripts/deploy.sh)):
@@ -407,9 +420,11 @@ ssh -o BatchMode=yes "$TARGET_HOST" "mkdir -p '$TARGET_REMOTE_DIR' '$TARGET_BUIL
 ```bash
 #!/usr/bin/env bash
 set -eu
+ssh -o BatchMode=yes "$TARGET_SSH_HOST" "mkdir -p '$(dirname "$TARGET_APP_PATH")'"
 rsync -rltz --protect-args -e 'ssh -o BatchMode=yes' \
-    "$CROSS_BUILD_DIR/$TARGET_PROGRAM" scripts/console-wrapper.sh \
-    "$TARGET_HOST:$TARGET_BUILD_DIR/"
+    "$HOST_APP_PATH" "$TARGET_SSH_HOST:$TARGET_APP_PATH"
+rsync -rltz --protect-args -e 'ssh -o BatchMode=yes' \
+    scripts/console-wrapper.sh "$TARGET_SSH_HOST:$TARGET_WORK_DIR/"
 ```
 
 **`scripts/run.sh`** ([файл](example/scripts/run.sh)):
@@ -417,8 +432,8 @@ rsync -rltz --protect-args -e 'ssh -o BatchMode=yes' \
 ```bash
 #!/usr/bin/env bash
 set -eu
-ssh -t -o BatchMode=yes "$TARGET_HOST" \
-    "cd '$TARGET_REMOTE_DIR' && exec '$TARGET_BUILD_DIR/$TARGET_PROGRAM'"
+ssh -t -o BatchMode=yes "$TARGET_SSH_HOST" \
+    "cd '$TARGET_WORK_DIR' && exec '$TARGET_APP_PATH'"
 ```
 
 **`scripts/console.sh`** ([файл](example/scripts/console.sh)):
@@ -426,7 +441,7 @@ ssh -t -o BatchMode=yes "$TARGET_HOST" \
 ```bash
 #!/usr/bin/env bash
 set -eu
-ssh -t -o BatchMode=yes "$TARGET_HOST" "tty; exec sleep infinity"
+ssh -t -o BatchMode=yes "$TARGET_SSH_HOST" "tty; exec sleep infinity"
 ```
 
 **`scripts/debug-transport.sh`** ([файл](example/scripts/debug-transport.sh)):
@@ -434,43 +449,53 @@ ssh -t -o BatchMode=yes "$TARGET_HOST" "tty; exec sleep infinity"
 ```bash
 #!/usr/bin/env bash
 set -eu
-ssh -T -o BatchMode=yes "$1" \
-    "cd '$2' && exec '$5' --once --wrapper /bin/sh '$3/console-wrapper.sh' '$6' -- stdio '$3/$4'"
+
+target_ssh_host=$1
+target_work_dir=$2
+target_app_path=$3
+target_gdbserver=$4
+target_tty=$5
+
+ssh -T -o BatchMode=yes "$target_ssh_host" \
+    "cd '$target_work_dir' && exec '$target_gdbserver' --once --wrapper /bin/sh '$target_work_dir/console-wrapper.sh' '$target_tty' -- stdio '$target_app_path'"
 ```
 
 **`scripts/console-wrapper.sh`** ([файл](example/scripts/console-wrapper.sh)):
 
 ```sh
 #!/bin/sh
-terminal=$1
+target_tty=$1
 shift
-exec "$@" < "$terminal" > "$terminal" 2>&1
+
+# Remaining arguments are the application command and its arguments.
+exec "$@" < "$target_tty" > "$target_tty" 2>&1
 ```
 
 **`.vscode/settings.json`** ([файл](example/.vscode/settings.json)):
 
 ```json
 {
-    "target.host": "pi-dev",
-    "target.remoteDir": "/home/dev/work/hello-cross",
-    "target.buildDir": "/home/dev/work/hello-cross/build",
-    "target.program": "hello",
+    "target.sshHost": "pi-dev",
+    "target.workDir": "/home/dev/work/hello-cross",
+    "target.appPath": "cross_example",
     "target.gdbserver": "/usr/bin/gdbserver",
     "target.loader": "/lib/ld-linux-aarch64.so.1",
-    "cross.buildDir": "build/debug",
-    "cross.sysroot": "build/sysroot",
-    "cross.toolchain": "cmake/linux-toolchain.cmake",
-    "cross.triple": "aarch64-linux-gnu",
-    "cross.gdb": "/usr/bin/gdb-multiarch",
-    "cross.jobs": "2",
-    "cross.buildType": "Debug",
+    "target.libTriple": "aarch64-linux-gnu",
+    "target.debugArch": "arm64",
+    "host.workDir": ".",
+    "host.buildDir": "build/debug",
+    "host.appPath": "cross_example",
+    "host.sysroot": "/home/dev/sysroots/rpi0",
+    "host.toolchainFile": "cmake/linux-toolchain.cmake",
+    "host.gdb": "/usr/bin/gdb-multiarch",
+    "build.type": "Debug",
+    "build.jobs": "2",
     "C_Cpp.default.compilerPath": "/usr/bin/aarch64-linux-gnu-gcc",
     "C_Cpp.default.compileCommands": [
         "${workspaceFolder}/build/debug/compile_commands.json"
     ],
     "cmake.sourceDirectory": "${workspaceFolder}/project",
     "cmake.buildDirectory": "${workspaceFolder}/build/debug",
-    "cross.debugArch": "arm64",
     "cmake.configureOnOpen": false
 }
 ```
@@ -483,18 +508,19 @@ exec "$@" < "$terminal" > "$terminal" 2>&1
     "options": {
         "cwd": "${workspaceFolder}",
         "env": {
-            "TARGET_HOST": "${config:target.host}",
-            "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
-            "TARGET_BUILD_DIR": "${config:target.buildDir}",
-            "TARGET_PROGRAM": "${config:target.program}",
+            "TARGET_SSH_HOST": "${config:target.sshHost}",
+            "TARGET_WORK_DIR": "${config:target.workDir}",
+            "TARGET_APP_PATH": "${config:target.workDir}/${config:target.appPath}",
             "TARGET_GDBSERVER": "${config:target.gdbserver}",
             "TARGET_LOADER": "${config:target.loader}",
-            "CROSS_TRIPLE": "${config:cross.triple}",
-            "CROSS_JOBS": "${config:cross.jobs}",
-            "CROSS_BUILD_TYPE": "${config:cross.buildType}",
-            "CROSS_BUILD_DIR": "${workspaceFolder}/${config:cross.buildDir}",
-            "CROSS_SYSROOT": "${workspaceFolder}/${config:cross.sysroot}",
-            "CROSS_TOOLCHAIN": "${workspaceFolder}/${config:cross.toolchain}"
+            "TARGET_LIB_TRIPLE": "${config:target.libTriple}",
+            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
+            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
+            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
+            "HOST_SYSROOT": "${config:host.sysroot}",
+            "HOST_TOOLCHAIN_FILE": "${workspaceFolder}/${config:host.workDir}/${config:host.toolchainFile}",
+            "BUILD_TYPE": "${config:build.type}",
+            "BUILD_JOBS": "${config:build.jobs}"
         }
     },
     "tasks": [
@@ -616,31 +642,31 @@ exec "$@" < "$terminal" > "$terminal" 2>&1
             "name": "Cross: local GDB via SSH",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/${config:cross.buildDir}/${config:target.program}",
+            "program": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
             "cwd": "${workspaceFolder}",
             "args": [],
             "MIMode": "gdb",
-            "miDebuggerPath": "${config:cross.gdb}",
+            "miDebuggerPath": "${config:host.gdb}",
             "preLaunchTask": "Deploy cross",
             "externalConsole": false,
             "setupCommands": [
                 {
-                    "text": "set sysroot ${workspaceFolder}/${config:cross.sysroot}"
+                    "text": "set sysroot ${config:host.sysroot}"
                 }
             ],
             "customLaunchSetupCommands": [
                 {
-                    "text": "file \"${workspaceFolder}/${config:cross.buildDir}/${config:target.program}\""
+                    "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },
                 {
-                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.host}\" \"${config:target.remoteDir}\" \"${config:target.buildDir}\" \"${config:target.program}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
+                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
                 },
                 {
                     "text": "tbreak main"
                 }
             ],
             "launchCompleteCommand": "exec-continue",
-            "targetArchitecture": "${config:cross.debugArch}"
+            "targetArchitecture": "${config:target.debugArch}"
         }
     ],
     "inputs": [
@@ -661,7 +687,7 @@ exec "$@" < "$terminal" > "$terminal" 2>&1
 | Файл есть, но запуск сообщает `No such file or directory` | Путь ELF-загрузчика и его наличие на устройстве: `readelf -l` |
 | `GLIBC_*` или `GLIBCXX_* not found` | Версии использованных при линковке и установленных runtime-библиотек; совместимость toolchain/SDK |
 | Не найдены заголовки или библиотеки | Sysroot, целевые dev-пакеты и пути поиска CMake |
-| GDB не запускается | `cross.gdb`, поддержку целевой архитектуры и наличие локальной программы с символами |
+| GDB не запускается | `host.gdb`, поддержку целевой архитектуры и наличие локальной программы с символами |
 | gdbserver не запускается | `target.gdbserver`, копию программы и `console-wrapper.sh` на устройстве |
 | Нет консольного ввода | Открытую SSH-консоль и корректный TTY; наличие оболочки и её аргумента |
 | Breakpoint не срабатывает | Debug-сборку, соответствие исходников и исполняемых файлов, свежую передачу программы |

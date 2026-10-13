@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
+target_ip=$1
 config_path=${2:-"$HOME/.ssh/conf.d/pi-dev"}
 mkdir -p "$(dirname "$config_path")"
 umask 077
 cat > "$config_path" <<EOF
 Host pi-dev
-    HostName $1
+    HostName $target_ip
     User dev
     IdentityFile ~/.ssh/rpi-dev
     IdentitiesOnly yes
