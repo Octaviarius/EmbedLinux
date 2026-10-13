@@ -1,106 +1,129 @@
 {
     "version": "2.0.0",
+    "options": {
+        "cwd": "${workspaceFolder}",
+        "env": {
+            "TARGET_HOST": "${config:target.host}",
+            "TARGET_REMOTE_DIR": "${config:target.remoteDir}",
+            "TARGET_BUILD_DIR": "${config:target.buildDir}",
+            "TARGET_PROGRAM": "${config:target.program}",
+            "TARGET_GDBSERVER": "${config:target.gdbserver}",
+            "TARGET_LOADER": "${config:target.loader}",
+            "CROSS_ARCH": "${config:cross.arch}",
+            "CROSS_TRIPLE": "${config:cross.triple}",
+            "CROSS_CC": "${config:cross.cc}",
+            "CROSS_CXX": "${config:cross.cxx}",
+            "CROSS_JOBS": "${config:cross.jobs}",
+            "CROSS_BUILD_TYPE": "${config:cross.buildType}",
+            "CROSS_BUILD_DIR": "${workspaceFolder}/${config:cross.buildDir}",
+            "CROSS_SYSROOT": "${workspaceFolder}/${config:cross.sysroot}",
+            "CROSS_TOOLCHAIN": "${workspaceFolder}/${config:cross.toolchain}"
+        }
+    },
     "tasks": [
         {
-            "label": "Configure",
+            "label": "Copy sysroot",
             "type": "process",
-            "command": "cmake",
+            "command": "bash",
             "args": [
-                "--preset",
-                "cross",
-                "-DAPP_NAME=${config:rpi.program}"
+                "scripts/sysroot.sh"
             ],
-            "options": {
-                "cwd": "${workspaceFolder}",
-                "env": {
-                    "RPI_CC": "${config:rpi.cc}",
-                    "RPI_CXX": "${config:rpi.cxx}",
-                    "RPI_SYSROOT": "${config:rpi.sysroot}"
-                }
-            },
             "problemMatcher": []
         },
         {
-            "label": "Build",
+            "label": "Fix sysroot links",
             "type": "process",
-            "command": "cmake",
+            "command": "bash",
             "args": [
-                "--build",
-                "${workspaceFolder}/build/cross",
-                "--parallel",
-                "${config:rpi.jobs}"
+                "scripts/fix-sysroot-links.sh"
             ],
-            "dependsOn": "Configure",
+            "problemMatcher": []
+        },
+        {
+            "label": "Configure cross",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/configure.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Compile cross",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/build.sh"
+            ],
+            "problemMatcher": "$gcc"
+        },
+        {
+            "label": "Prepare target",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/prepare.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Deploy program",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/deploy.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Run on target",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/run.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Open target console",
+            "type": "process",
+            "command": "bash",
+            "args": [
+                "scripts/console.sh"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Build cross",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Configure cross",
+                "Compile cross"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true
             },
-            "problemMatcher": "$gcc"
-        },
-        {
-            "label": "Prepare Pi directory",
-            "type": "process",
-            "command": "ssh",
-            "args": [
-                "${config:rpi.sshHost}",
-                "mkdir -p '${config:rpi.remoteDir}'"
-            ],
             "problemMatcher": []
         },
         {
-            "label": "Deploy",
-            "type": "process",
-            "command": "scp",
-            "args": [
-                "${workspaceFolder}/build/cross/${config:rpi.program}",
-                "${config:rpi.sshHost}:${config:rpi.remoteDir}/${config:rpi.program}"
-            ],
-            "dependsOn": [
-                "Build",
-                "Prepare Pi directory"
-            ],
+            "label": "Deploy cross",
             "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build cross",
+                "Prepare target",
+                "Deploy program"
+            ],
             "problemMatcher": []
         },
         {
-            "label": "Run on Pi",
-            "type": "process",
-            "command": "ssh",
-            "args": [
-                "${config:rpi.sshHost}",
-                "cd '${config:rpi.remoteDir}' && './${config:rpi.program}'"
+            "label": "Sync sysroot",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Copy sysroot",
+                "Fix sysroot links"
             ],
-            "dependsOn": "Deploy",
             "problemMatcher": []
-        },
-        {
-            "label": "Debug server",
-            "type": "process",
-            "command": "ssh",
-            "args": [
-                "-o",
-                "ExitOnForwardFailure=yes",
-                "-L",
-                "127.0.0.1:${config:rpi.gdbPort}:127.0.0.1:${config:rpi.gdbPort}",
-                "${config:rpi.sshHost}",
-                "cd '${config:rpi.remoteDir}' && LC_ALL=C gdbserver --once :${config:rpi.gdbPort} './${config:rpi.program}'"
-            ],
-            "dependsOn": "Deploy",
-            "isBackground": true,
-            "problemMatcher": {
-                "owner": "rpi-gdbserver",
-                "pattern": {
-                    "regexp": "^(.+):(\\d+): (.+)$",
-                    "file": 1,
-                    "line": 2,
-                    "message": 3
-                },
-                "background": {
-                    "activeOnStart": true,
-                    "beginsPattern": "^Process .* created; pid = ",
-                    "endsPattern": "^Listening on port \\d+"
-                }
-            }
         }
     ]
 }

@@ -1,14 +1,26 @@
 {
-    "rpi.program": "hello",
-    "rpi.jobs": "2",
-    "rpi.cc": "/usr/bin/aarch64-linux-gnu-gcc",
-    "rpi.cxx": "/usr/bin/aarch64-linux-gnu-g++",
-    "rpi.sysroot": "/home/dev/rpi/sysroot",
-    "rpi.sshHost": "pi-dev",
-    "rpi.remoteDir": "/home/dev/pi_test",
-    "rpi.gdbPort": "1234",
-    "rpi.crossGdb": "/usr/bin/gdb-multiarch",
+    "target.host": "pi-dev",
+    "target.remoteDir": "/home/dev/work/hello-cross",
+    "target.buildDir": "/home/dev/work/hello-cross/build",
+    "target.program": "hello",
+    "target.gdbserver": "/usr/bin/gdbserver",
+    "target.loader": "/lib/ld-linux-aarch64.so.1",
+    "cross.buildDir": "build/debug",
+    "cross.sysroot": "build/sysroot",
+    "cross.toolchain": "cmake/linux-toolchain.cmake",
+    "cross.arch": "aarch64",
+    "cross.triple": "aarch64-linux-gnu",
+    "cross.cc": "/usr/bin/aarch64-linux-gnu-gcc",
+    "cross.cxx": "/usr/bin/aarch64-linux-gnu-g++",
+    "cross.gdb": "/usr/bin/gdb-multiarch",
+    "cross.jobs": "2",
+    "cross.buildType": "Debug",
+    "C_Cpp.default.compilerPath": "/usr/bin/aarch64-linux-gnu-gcc",
     "C_Cpp.default.compileCommands": [
-        "${workspaceFolder}/build/cross/compile_commands.json"
-    ]
+        "${workspaceFolder}/build/debug/compile_commands.json"
+    ],
+    "cmake.sourceDirectory": "${workspaceFolder}/project",
+    "cmake.buildDirectory": "${workspaceFolder}/build/debug",
+    "cross.debugArch": "arm64",
+    "cmake.configureOnOpen": false
 }
