@@ -1,15 +1,13 @@
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR "$ENV{CROSS_ARCH}")
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
 
-foreach(name CROSS_ARCH CROSS_CC CROSS_CXX CROSS_SYSROOT)
-    if("$ENV{${name}}" STREQUAL "")
-        message(FATAL_ERROR "Set ${name} before configuring the cross build")
-    endif()
-endforeach()
-
-set(CMAKE_C_COMPILER "$ENV{CROSS_CC}")
-set(CMAKE_CXX_COMPILER "$ENV{CROSS_CXX}")
+if("$ENV{CROSS_SYSROOT}" STREQUAL "")
+    message(FATAL_ERROR "Set CROSS_SYSROOT before configuring the cross build")
+endif()
 set(CMAKE_SYSROOT "$ENV{CROSS_SYSROOT}")
+
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)

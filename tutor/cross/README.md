@@ -151,8 +151,7 @@ hello-cross/
 | `CROSS_BUILD_DIR` | Компьютер | Полный путь к каталогу сборки |
 | `CROSS_SYSROOT` | Компьютер | Полный путь к sysroot |
 | `CROSS_TOOLCHAIN` | Компьютер | Полный путь к toolchain-файлу CMake |
-| `CROSS_ARCH`, `CROSS_TRIPLE` | Компьютер | Архитектура CMake и имя каталога библиотек Debian multiarch |
-| `CROSS_CC`, `CROSS_CXX` | Компьютер | Пути к кросс-компиляторам |
+| `CROSS_TRIPLE` | Компьютер | Имя каталога библиотек Debian multiarch для копирования sysroot |
 | `CROSS_GDB` | Компьютер | Путь к GDB с поддержкой целевой архитектуры |
 | `CROSS_JOBS`, `CROSS_BUILD_TYPE` | Компьютер | Параллелизм и тип сборки |
 
@@ -168,14 +167,13 @@ export TARGET_LOADER=/lib/ld-linux-aarch64.so.1
 export CROSS_BUILD_DIR="$PWD/build/debug"
 export CROSS_SYSROOT="$PWD/build/sysroot"
 export CROSS_TOOLCHAIN="$PWD/cmake/linux-toolchain.cmake"
-export CROSS_ARCH=aarch64
 export CROSS_TRIPLE=aarch64-linux-gnu
-export CROSS_CC=/usr/bin/aarch64-linux-gnu-gcc
-export CROSS_CXX=/usr/bin/aarch64-linux-gnu-g++
 export CROSS_GDB=/usr/bin/gdb-multiarch
 export CROSS_JOBS=2
 export CROSS_BUILD_TYPE=Debug
 ```
+
+Архитектуру и пути компиляторов изменяйте в `cmake/linux-toolchain.cmake`. Отдельные переменные окружения для них не нужны. `CROSS_SYSROOT` остаётся общим параметром для копирования библиотек, CMake и GDB; `CROSS_TRIPLE` используется только для каталогов Debian multiarch при копировании.
 
 `$PWD` раскрывается при `source target.env`. Скрипты запускайте из корня примера. При смене компилятора, архитектуры или sysroot используйте новый каталог сборки: CMake сохраняет выбор toolchain в кеше. Для параметров удалённых команд используйте значения без кавычек, переводов строк и shell-символов.
 
@@ -263,7 +261,7 @@ GDB остановится в `main`. Команды `next`, `step`, `finish`, `
 
 Откройте корень примера через `code .` из WSL и установите расширение C/C++ в WSL.
 
-В `.vscode/settings.json` задайте `target.*` для устройства и `cross.*` для компьютера. В примере `cross.buildDir`, `cross.sysroot` и `cross.toolchain` — пути **относительно корня примера**; задачи дополняют их `${workspaceFolder}/`. Пути компиляторов и GDB — абсолютные. `cross.debugArch` задаёт архитектуру адаптера VS Code: для AArch64 в примере используется `arm64` (название отличается от `cross.arch: aarch64`). Для другой цели согласуйте оба параметра. Эти настройки отдельно от `target.env`: при запуске задач значения передаются через `options.env`.
+В `.vscode/settings.json` задайте `target.*` для устройства и `cross.*` для компьютера. В примере `cross.buildDir`, `cross.sysroot` и `cross.toolchain` — пути **относительно корня примера**; задачи дополняют их `${workspaceFolder}/`. Компиляторы и архитектура задаются в `cmake/linux-toolchain.cmake`; путь GDB — абсолютный. `cross.debugArch` задаёт архитектуру адаптера VS Code: для AArch64 в примере используется `arm64` (в toolchain-файле эта архитектура называется `aarch64`). Для другой цели согласуйте оба параметра. Эти настройки отдельно от `target.env`: при запуске задач значения передаются через `options.env`.
 
 - `Sync sysroot` — обновить sysroot при необходимости.
 - **Ctrl+Shift+B** — локально настроить и собрать приложение.
@@ -272,7 +270,7 @@ GDB остановится в `main`. Команды `next`, `step`, `finish`, `
 - `Open target console` — открыть консоль отлаживаемой программы.
 - **F5** — указать показанный TTY и запустить подготовку и отладку с остановкой в `main`.
 
-IntelliSense использует кросс-компилятор и локальный `compile_commands.json`, включающий параметры sysroot. При изменении `cross.buildDir` согласуйте путь `C_Cpp.default.compileCommands`; при смене компилятора — `C_Cpp.default.compilerPath`. Автоматическая настройка CMake при открытии папки выключена. Настройки `cmake.*` предназначены для локального CMake Tools; сборка этого туториала выполняется нашими задачами, которые передают toolchain явно.
+IntelliSense использует кросс-компилятор и локальный `compile_commands.json`, включающий параметры sysroot. При изменении `cross.buildDir` согласуйте путь `C_Cpp.default.compileCommands`; при смене компилятора в toolchain-файле — `C_Cpp.default.compilerPath`. Автоматическая настройка CMake при открытии папки выключена. Настройки `cmake.*` предназначены для локального CMake Tools; сборка этого туториала выполняется нашими задачами, которые передают toolchain явно.
 
 ### Как запускается удалённая отладка
 
@@ -331,17 +329,15 @@ target_compile_options(${APP_NAME} PRIVATE -Wall -Wextra)
 
 ```cmake
 set(CMAKE_SYSTEM_NAME Linux)
-set(CMAKE_SYSTEM_PROCESSOR "$ENV{CROSS_ARCH}")
+set(CMAKE_SYSTEM_PROCESSOR aarch64)
+set(CMAKE_C_COMPILER /usr/bin/aarch64-linux-gnu-gcc)
+set(CMAKE_CXX_COMPILER /usr/bin/aarch64-linux-gnu-g++)
 
-foreach(name CROSS_ARCH CROSS_CC CROSS_CXX CROSS_SYSROOT)
-    if("$ENV{${name}}" STREQUAL "")
-        message(FATAL_ERROR "Set ${name} before configuring the cross build")
-    endif()
-endforeach()
-
-set(CMAKE_C_COMPILER "$ENV{CROSS_CC}")
-set(CMAKE_CXX_COMPILER "$ENV{CROSS_CXX}")
+if("$ENV{CROSS_SYSROOT}" STREQUAL "")
+    message(FATAL_ERROR "Set CROSS_SYSROOT before configuring the cross build")
+endif()
 set(CMAKE_SYSROOT "$ENV{CROSS_SYSROOT}")
+
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
@@ -464,10 +460,7 @@ exec "$@" < "$terminal" > "$terminal" 2>&1
     "cross.buildDir": "build/debug",
     "cross.sysroot": "build/sysroot",
     "cross.toolchain": "cmake/linux-toolchain.cmake",
-    "cross.arch": "aarch64",
     "cross.triple": "aarch64-linux-gnu",
-    "cross.cc": "/usr/bin/aarch64-linux-gnu-gcc",
-    "cross.cxx": "/usr/bin/aarch64-linux-gnu-g++",
     "cross.gdb": "/usr/bin/gdb-multiarch",
     "cross.jobs": "2",
     "cross.buildType": "Debug",
@@ -496,10 +489,7 @@ exec "$@" < "$terminal" > "$terminal" 2>&1
             "TARGET_PROGRAM": "${config:target.program}",
             "TARGET_GDBSERVER": "${config:target.gdbserver}",
             "TARGET_LOADER": "${config:target.loader}",
-            "CROSS_ARCH": "${config:cross.arch}",
             "CROSS_TRIPLE": "${config:cross.triple}",
-            "CROSS_CC": "${config:cross.cc}",
-            "CROSS_CXX": "${config:cross.cxx}",
             "CROSS_JOBS": "${config:cross.jobs}",
             "CROSS_BUILD_TYPE": "${config:cross.buildType}",
             "CROSS_BUILD_DIR": "${workspaceFolder}/${config:cross.buildDir}",
