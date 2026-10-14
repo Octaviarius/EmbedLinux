@@ -357,18 +357,15 @@ bash scripts/debug-console.sh
 
 ### Команды скриптов отладки
 
-**`debug-console.sh`** открывает терминал приложения. Его первая строка вывода — адрес терминала на target, например `/dev/pts/2`; её скрипт сохраняет локально. Остальной вывод передаётся в терминал VS Code.
+**`debug-console.sh`** открывает терминал приложения. Каталог сборки уже должен существовать: при F5 его создаёт предыдущая задача `Build`. Его первая строка вывода — адрес терминала на target, например `/dev/pts/2`; её скрипт сохраняет локально. Остальной вывод передаётся в терминал VS Code.
 
 | Команда | Что делает |
 |---|---|
-| `mkdir -p "$HOST_BUILD_DIR"` | Создаёт место для локального файла с адресом TTY |
-| `rm -f "$tty_file"` | Удаляет адрес старой консоли перед новым подключением |
 | `trap 'rm -f "$tty_file"' EXIT` | Удаляет файл при завершении скрипта |
 | `ssh -tt` | Принудительно создаёт терминал на target, даже когда вывод SSH направлен в pipe |
 | `tty; exec sleep infinity` | Печатает адрес терминала и держит SSH-соединение открытым; `sleep` не читает ввод приложения |
 | `\| { ...; }` | Передаёт вывод SSH группе команд: первая строка сохраняется, остальные выводятся пользователю |
-| `IFS= read -r target_tty` | Читает первую строку без обрезания пробелов и обработки обратных слешей |
-| `[[ $target_tty == /dev/pts/* ]]` | Проверяет, что получен адрес терминала, а не посторонний вывод |
+| `read -r target_tty` | Читает первую строку вывода SSH — адрес терминала |
 | `${target_tty%$'\r'}` | Убирает завершающий carriage return, добавленный терминалом |
 | `printf ... > "$tty_file"` | Сохраняет адрес TTY в `HOST_BUILD_DIR/target.tty` |
 | `echo "Target console ready"` | Сообщает фоновой задаче VS Code, что можно запускать GDB |
@@ -478,13 +475,10 @@ set -e
 
 tty_file="$HOST_BUILD_DIR/target.tty"
 
-mkdir -p "$HOST_BUILD_DIR"
-rm -f "$tty_file"
 trap 'rm -f "$tty_file"' EXIT
 echo "Opening target console"
 ssh -tt "$TARGET_SSH_HOST" "tty; exec sleep infinity" | {
-    IFS= read -r target_tty
-    [[ $target_tty == /dev/pts/* ]]
+    read -r target_tty
     printf '%s\n' "${target_tty%$'\r'}" > "$tty_file"
     echo "Target console ready"
     cat
