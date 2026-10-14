@@ -73,7 +73,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Console Only",
+            "label": "Console",
             "type": "process",
             "command": "bash",
             "args": [

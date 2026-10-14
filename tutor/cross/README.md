@@ -294,10 +294,10 @@ SSH использует настройки из `~/.ssh/config`. Для пер�
 | `Build Only` | Только сборка существующего каталога |
 | `Deploy Only` | Только передача готового приложения |
 | `Run Only` | Только запуск на устройстве |
-| `Console Only` | Только открытие консоли отладки |
+| `Console` | Только открытие консоли отладки |
 | `Build` | Configure → Build Only |
 | `Deploy` | Build → Deploy Only |
-| `Debug` | Deploy → Console Only, затем запуск GDB |
+| `Debug` | Deploy → Console, затем запуск GDB |
 | `Sync Sysroot` | Copy Sysroot Only → Fix Sysroot Links Only |
 
 - **Ctrl+Shift+B** — `Configure Only → Build Only`.
@@ -305,13 +305,13 @@ SSH использует настройки из `~/.ssh/config`. Для пер�
 - `Run Only` — запуск без сборки и передачи.
 - `Sync Sysroot` — копирование sysroot и исправление ссылок; для готового SDK не запускайте.
 - **F5** — задача `Debug` соберёт и передаст приложение, откроет консоль и дождётся её готовности. GDB остановит приложение в `main`.
-- Продолжите выполнение и вводите числа в терминале `Console Only`. Ручного ввода TTY нет.
+- Продолжите выполнение и вводите числа в терминале `Console`. Ручного ввода TTY нет.
 
-Ninja пропускает ненужную компиляцию, но задачи `preLaunchTask` повторяются при каждом F5. Для отладки уже переданного приложения можно убрать `preLaunchTask`; тогда заранее откройте `Console Only`, а актуальность файлов обеспечьте вручную.
+Ninja пропускает ненужную компиляцию, но задачи `preLaunchTask` повторяются при каждом F5. Для отладки уже переданного приложения можно убрать `preLaunchTask`; тогда заранее откройте `Console`, а актуальность файлов обеспечьте вручную.
 
 ### Как запускается удалённая отладка
 
-1. `preLaunchTask: "Debug"` выполняет `Deploy`, затем запускает фоновую задачу `Console Only`. Sysroot автоматически не обновляется.
+1. `preLaunchTask: "Debug"` выполняет `Deploy`, затем запускает фоновую задачу `Console`. Sysroot автоматически не обновляется.
 2. `debug-console.sh` открывает SSH-терминал, сохраняет его TTY в `HOST_BUILD_DIR/target.tty` и печатает `Target console ready`. Фоновый matcher задачи сообщает VS Code, что консоль готова. Только после этого начинается отладка.
 3. VS Code запускает локальный GDB из `sdk.gdb`; символы читаются по пути, составленному из `host.workDir`, `host.buildDir` и `host.appPath`.
 4. `set sysroot` указывает локальные библиотеки устройства.
@@ -328,15 +328,14 @@ Ninja пропускает ненужную компиляцию, но зада�
 | `cwd` | Рабочий каталог локального GDB |
 | `miDebuggerPath` | Локальный GDB из окружения SDK |
 | `preLaunchTask` | Сборка, передача и ожидание готовности фоновой консоли |
-| `setupCommands` | Указание sysroot локальному GDB |
-| `customLaunchSetupCommands` | Загрузка символов, SSH/gdbserver и точка останова в `main` |
+| `customLaunchSetupCommands` | По порядку: sysroot → символы приложения → SSH/gdbserver → точка останова в `main` |
 | `targetArchitecture` | `SDK_DEBUG_ARCH`; для AArch64 адаптер использует `arm64` |
 
 ### Как работает консоль
 
 SSH-канал gdbserver занят протоколом отладки. `debug-console.sh` держит отдельное SSH-соединение с TTY; `debug-transport.sh` использует этот TTY для stdin, stdout и stderr приложения. Перенаправление выполняется встроенной командой оболочки через `--wrapper`, без создания файлов на устройстве.
 
-Вводите числа в терминале `Console Only`; Debug Console предназначена для GDB. Консоль остаётся открытой между сеансами отладки. Для её закрытия используйте `Tasks: Terminate Task → Console Only`. После завершения консоли повторный запуск создаст новое соединение и получит новый TTY. Для остановки самого приложения используйте кнопки отладчика.
+Вводите числа в терминале `Console`; Debug Console предназначена для GDB. Консоль остаётся открытой между сеансами отладки. Для её закрытия используйте `Tasks: Terminate Task → Console`. После завершения консоли повторный запуск создаст новое соединение и получит новый TTY. Для остановки самого приложения используйте кнопки отладчика.
 
 Без VS Code можно использовать те же два скрипта. В одном терминале, после загрузки окружения:
 
@@ -572,12 +571,10 @@ rsync -rlt \
             "MIMode": "gdb",
             "miDebuggerPath": "${config:sdk.gdb}",
             "preLaunchTask": "Debug",
-            "setupCommands": [
+            "customLaunchSetupCommands": [
                 {
                     "text": "set sysroot ${config:sdk.sysroot}"
-                }
-            ],
-            "customLaunchSetupCommands": [
+                },
                 {
                     "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },
@@ -725,7 +722,7 @@ rsync -rlt \
             "problemMatcher": []
         },
         {
-            "label": "Console Only",
+            "label": "Console",
             "type": "process",
             "command": "bash",
             "args": [
@@ -788,7 +785,7 @@ rsync -rlt \
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Deploy",
-                "Console Only"
+                "Console"
             ],
             "problemMatcher": []
         }
@@ -806,7 +803,7 @@ rsync -rlt \
 | Не найдены заголовки или библиотеки | Sysroot, пакеты разработки и символические ссылки |
 | `Exec format error` на target | Архитектуру приложения, компилятор и ABI устройства |
 | Ошибка загрузчика или GLIBC | Загрузчик, runtime-библиотеки и совместимость SDK с образом |
-| Нет ввода или вывода при отладке | задачу `Console Only`, файл `HOST_BUILD_DIR/target.tty` и соединение с устройством |
+| Нет ввода или вывода при отладке | задачу `Console`, файл `HOST_BUILD_DIR/target.tty` и соединение с устройством |
 | GDB не запускается | `SDK_GDB` и поддержку целевой архитектуры |
 
 ## Проверенные платформы

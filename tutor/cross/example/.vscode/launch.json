@@ -10,12 +10,10 @@
             "MIMode": "gdb",
             "miDebuggerPath": "${config:sdk.gdb}",
             "preLaunchTask": "Debug",
-            "setupCommands": [
+            "customLaunchSetupCommands": [
                 {
                     "text": "set sysroot ${config:sdk.sysroot}"
-                }
-            ],
-            "customLaunchSetupCommands": [
+                },
                 {
                     "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },

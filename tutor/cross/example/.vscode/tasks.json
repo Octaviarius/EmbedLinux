@@ -96,7 +96,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Console Only",
+            "label": "Console",
             "type": "process",
             "command": "bash",
             "args": [
@@ -159,7 +159,7 @@
             "dependsOrder": "sequence",
             "dependsOn": [
                 "Deploy",
-                "Console Only"
+                "Console"
             ],
             "problemMatcher": []
         }
