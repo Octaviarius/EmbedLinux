@@ -506,4 +506,4 @@ Xello
 - [proc_pid_maps(5)](https://man7.org/linux/man-pages/man5/proc_pid_maps.5.html), [proc_pid_smaps(5)](https://man7.org/linux/man-pages/man5/proc_pid_smaps.5.html).
 - [Linux kernel: Overcommit Accounting](https://www.kernel.org/doc/html/latest/mm/overcommit-accounting.html).
 
-[К серии User-space](README.md). [Предыдущий материал](file-io.md).
+[К серии User-space](README.md). [Предыдущий материал](file-io.md). [Следующий материал](signals-time.md).
