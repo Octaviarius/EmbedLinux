@@ -3,24 +3,46 @@
     "options": {
         "cwd": "${workspaceFolder}",
         "env": {
+            "SDK_ROOT": "${workspaceFolder}/${config:sdk.root}",
+            "SDK_SYSROOT": "${config:sdk.sysroot}",
+            "SDK_TOOLCHAIN_FILE": "${workspaceFolder}/${config:sdk.root}/${config:sdk.toolchainFile}",
+            "SDK_GDB": "${config:sdk.gdb}",
+            "SDK_TARGET_LOADER": "${config:sdk.targetLoader}",
+            "SDK_TARGET_MULTIARCH": "${config:sdk.targetMultiarch}",
+            "SDK_DEBUG_ARCH": "${config:sdk.debugArch}",
+            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
+            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
+            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
             "TARGET_SSH_HOST": "${config:target.sshHost}",
             "TARGET_WORK_DIR": "${config:target.workDir}",
             "TARGET_APP_PATH": "${config:target.workDir}/${config:target.appPath}",
             "TARGET_GDBSERVER": "${config:target.gdbserver}",
-            "TARGET_LOADER": "${config:target.loader}",
-            "TARGET_LIB_TRIPLE": "${config:target.libTriple}",
-            "HOST_WORK_DIR": "${workspaceFolder}/${config:host.workDir}",
-            "HOST_BUILD_DIR": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}",
-            "HOST_APP_PATH": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
-            "HOST_SYSROOT": "${config:host.sysroot}",
-            "HOST_TOOLCHAIN_FILE": "${workspaceFolder}/${config:host.workDir}/${config:host.toolchainFile}",
             "BUILD_TYPE": "${config:build.type}",
             "BUILD_JOBS": "${config:build.jobs}"
         }
     },
     "tasks": [
         {
-            "label": "Copy sysroot",
+            "label": "Show Environment Only",
+            "type": "process",
+            "command": "printenv",
+            "args": [
+                "SDK_ROOT",
+                "HOST_WORK_DIR",
+                "HOST_BUILD_DIR",
+                "HOST_APP_PATH",
+                "SDK_SYSROOT",
+                "SDK_TOOLCHAIN_FILE",
+                "SDK_GDB",
+                "TARGET_SSH_HOST",
+                "TARGET_WORK_DIR",
+                "TARGET_APP_PATH",
+                "SDK_DEBUG_ARCH"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Copy Sysroot Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -29,7 +51,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Fix sysroot links",
+            "label": "Fix Sysroot Links Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -38,7 +60,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Configure cross",
+            "label": "Configure Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -47,7 +69,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Compile cross",
+            "label": "Build Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -56,16 +78,7 @@
             "problemMatcher": "$gcc"
         },
         {
-            "label": "Prepare target",
-            "type": "process",
-            "command": "bash",
-            "args": [
-                "scripts/prepare.sh"
-            ],
-            "problemMatcher": []
-        },
-        {
-            "label": "Deploy program",
+            "label": "Deploy Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -74,7 +87,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run on target",
+            "label": "Run Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -83,20 +96,39 @@
             "problemMatcher": []
         },
         {
-            "label": "Open target console",
+            "label": "Console",
             "type": "process",
             "command": "bash",
             "args": [
-                "scripts/console.sh"
+                "scripts/debug-console.sh"
             ],
-            "problemMatcher": []
+            "problemMatcher": {
+                "owner": "target-console",
+                "pattern": {
+                    "regexp": "^(.+):(\\d+): (.+)$",
+                    "file": 1,
+                    "line": 2,
+                    "message": 3
+                },
+                "background": {
+                    "activeOnStart": true,
+                    "beginsPattern": "^Opening target console$",
+                    "endsPattern": "^Target console ready$"
+                }
+            },
+            "isBackground": true,
+            "presentation": {
+                "reveal": "always",
+                "panel": "dedicated",
+                "focus": true
+            }
         },
         {
-            "label": "Build cross",
+            "label": "Build",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Configure cross",
-                "Compile cross"
+                "Configure Only",
+                "Build Only"
             ],
             "group": {
                 "kind": "build",
@@ -105,21 +137,29 @@
             "problemMatcher": []
         },
         {
-            "label": "Deploy cross",
+            "label": "Deploy",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Build cross",
-                "Prepare target",
-                "Deploy program"
+                "Build",
+                "Deploy Only"
             ],
             "problemMatcher": []
         },
         {
-            "label": "Sync sysroot",
+            "label": "Sync Sysroot",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Copy sysroot",
-                "Fix sysroot links"
+                "Copy Sysroot Only",
+                "Fix Sysroot Links Only"
+            ],
+            "problemMatcher": []
+        },
+        {
+            "label": "Debug",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Deploy",
+                "Console"
             ],
             "problemMatcher": []
         }

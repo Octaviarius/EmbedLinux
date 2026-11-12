@@ -6,37 +6,26 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}",
-            "cwd": "${workspaceFolder}",
-            "args": [],
+            "cwd": "${workspaceFolder}/${config:host.workDir}",
             "MIMode": "gdb",
-            "miDebuggerPath": "${config:host.gdb}",
-            "preLaunchTask": "Deploy cross",
-            "externalConsole": false,
-            "setupCommands": [
-                {
-                    "text": "set sysroot ${config:host.sysroot}"
-                }
-            ],
+            "miDebuggerPath": "${config:sdk.gdb}",
+            "preLaunchTask": "Debug",
             "customLaunchSetupCommands": [
+                {
+                    "text": "set sysroot ${config:sdk.sysroot}"
+                },
                 {
                     "text": "file \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}/${config:host.appPath}\""
                 },
                 {
-                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\" \"${input:targetTty}\""
+                    "text": "target remote | bash \"${workspaceFolder}/scripts/debug-transport.sh\" \"${workspaceFolder}/${config:host.workDir}/${config:host.buildDir}\" \"${config:target.sshHost}\" \"${config:target.workDir}\" \"${config:target.workDir}/${config:target.appPath}\" \"${config:target.gdbserver}\""
                 },
                 {
                     "text": "tbreak main"
                 }
             ],
             "launchCompleteCommand": "exec-continue",
-            "targetArchitecture": "${config:target.debugArch}"
-        }
-    ],
-    "inputs": [
-        {
-            "id": "targetTty",
-            "type": "promptString",
-            "description": "Remote TTY printed by Open target console, e.g. /dev/pts/2"
+            "targetArchitecture": "${config:sdk.debugArch}"
         }
     ]
 }

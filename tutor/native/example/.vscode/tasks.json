@@ -13,7 +13,7 @@
     },
     "tasks": [
         {
-            "label": "Prepare target",
+            "label": "Prepare Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -22,7 +22,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Sync sources",
+            "label": "Sync Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -31,7 +31,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Configure target",
+            "label": "Configure Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -40,7 +40,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Compile target",
+            "label": "Build Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -49,7 +49,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Run on target",
+            "label": "Run Only",
             "type": "process",
             "command": "bash",
             "args": [
@@ -58,13 +58,13 @@
             "problemMatcher": []
         },
         {
-            "label": "Build on target",
+            "label": "Build",
             "dependsOrder": "sequence",
             "dependsOn": [
-                "Prepare target",
-                "Sync sources",
-                "Configure target",
-                "Compile target"
+                "Prepare Only",
+                "Sync Only",
+                "Configure Only",
+                "Build Only"
             ],
             "group": {
                 "kind": "build",
@@ -73,7 +73,7 @@
             "problemMatcher": []
         },
         {
-            "label": "Open target console",
+            "label": "Console",
             "type": "process",
             "command": "bash",
             "args": [

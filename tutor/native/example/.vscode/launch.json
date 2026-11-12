@@ -9,7 +9,7 @@
             "cwd": "${config:target.workDir}",
             "args": [],
             "MIMode": "gdb",
-            "preLaunchTask": "Build on target",
+            "preLaunchTask": "Build",
             "stopAtEntry": true,
             "externalConsole": false,
             "pipeTransport": {

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
-set -eu
-cmake -S project -B "$HOST_BUILD_DIR" -G Ninja \
-    -DCMAKE_TOOLCHAIN_FILE="$HOST_TOOLCHAIN_FILE" \
+cmake -S "$HOST_WORK_DIR/project" -B "$HOST_BUILD_DIR" -G Ninja \
+    -DCMAKE_TOOLCHAIN_FILE="$SDK_TOOLCHAIN_FILE" \
     -DCMAKE_BUILD_TYPE="$BUILD_TYPE" \
     -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
